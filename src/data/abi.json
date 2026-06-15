@@ -1,0 +1,3541 @@
+[
+  {
+    "inputs": [
+      {
+        "components": [
+          {
+            "internalType": "address",
+            "name": "committee",
+            "type": "address"
+          },
+          {
+            "internalType": "uint256",
+            "name": "defaultInfraCommissionRate",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "soloSlashRate",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "poolSlashAmount",
+            "type": "uint256"
+          },
+          {
+            "internalType": "address",
+            "name": "officialPool",
+            "type": "address"
+          }
+        ],
+        "internalType": "struct StakeManagerStorageConstructorInput",
+        "name": "input_",
+        "type": "tuple"
+      }
+    ],
+    "stateMutability": "nonpayable",
+    "type": "constructor"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "oldCommittee",
+        "type": "address"
+      },
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "newCommittee",
+        "type": "address"
+      },
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "caller",
+        "type": "address"
+      }
+    ],
+    "name": "CommitteeSet",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "val",
+        "type": "address"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "length",
+        "type": "uint256"
+      }
+    ],
+    "name": "MinimalValidatorAdded",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "val",
+        "type": "address"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "length",
+        "type": "uint256"
+      }
+    ],
+    "name": "MinimalValidatorRemoved",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "oldOfficialSigner",
+        "type": "address"
+      },
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "newOfficialSigner",
+        "type": "address"
+      },
+      {
+        "indexed": true,
+        "internalType": "uint256",
+        "name": "currentValidatorId",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "newValidBlock",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "internalType": "address",
+        "name": "caller",
+        "type": "address"
+      }
+    ],
+    "name": "OfficialSignerChanged",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "oldSlashManager",
+        "type": "address"
+      },
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "newSlashManager",
+        "type": "address"
+      },
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "caller",
+        "type": "address"
+      }
+    ],
+    "name": "SlashManagerSet",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "oldStakeManager",
+        "type": "address"
+      },
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "newStakeManager",
+        "type": "address"
+      },
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "caller",
+        "type": "address"
+      }
+    ],
+    "name": "StakeManagerSet",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "val",
+        "type": "address"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "length",
+        "type": "uint256"
+      }
+    ],
+    "name": "ValidatorAdded",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "val",
+        "type": "address"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "length",
+        "type": "uint256"
+      }
+    ],
+    "name": "ValidatorRemoved",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "oldValidatorShareFactory",
+        "type": "address"
+      },
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "newValidatorShareFactory",
+        "type": "address"
+      },
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "caller",
+        "type": "address"
+      }
+    ],
+    "name": "ValidatorShareFactorySet",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "bytes32",
+        "name": "hash",
+        "type": "bytes32"
+      },
+      {
+        "indexed": false,
+        "internalType": "bytes32",
+        "name": "oldValue",
+        "type": "bytes32"
+      },
+      {
+        "indexed": false,
+        "internalType": "bytes32",
+        "name": "newValue",
+        "type": "bytes32"
+      },
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "caller",
+        "type": "address"
+      }
+    ],
+    "name": "ValueSet",
+    "type": "event"
+  },
+  {
+    "inputs": [],
+    "name": "DEFAULT_SOLO_SLASH_RATE",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "INCORRECT_VALIDATOR_ID",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "MAX_COMMISSION_RATE",
+    "outputs": [
+      {
+        "internalType": "uint16",
+        "name": "",
+        "type": "uint16"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "MAX_INFRA_COMMISSION_RATE",
+    "outputs": [
+      {
+        "internalType": "uint16",
+        "name": "",
+        "type": "uint16"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "MAX_RATE",
+    "outputs": [
+      {
+        "internalType": "uint16",
+        "name": "",
+        "type": "uint16"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "_id",
+        "type": "uint256"
+      }
+    ],
+    "name": "activateValidator",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "val_",
+        "type": "address"
+      }
+    ],
+    "name": "addMinimalValidator",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "key_",
+        "type": "address"
+      },
+      {
+        "components": [
+          {
+            "internalType": "uint128",
+            "name": "amount",
+            "type": "uint128"
+          },
+          {
+            "internalType": "uint128",
+            "name": "delegatedAmount",
+            "type": "uint128"
+          },
+          {
+            "internalType": "uint128",
+            "name": "reward",
+            "type": "uint128"
+          },
+          {
+            "internalType": "uint128",
+            "name": "delegatorsReward",
+            "type": "uint128"
+          },
+          {
+            "internalType": "uint128",
+            "name": "infraCommissionAmount",
+            "type": "uint128"
+          },
+          {
+            "internalType": "uint128",
+            "name": "validatorCommissionAmount",
+            "type": "uint128"
+          },
+          {
+            "internalType": "uint128",
+            "name": "delegatorCommissionAmount",
+            "type": "uint128"
+          },
+          {
+            "internalType": "uint128",
+            "name": "minDeposit",
+            "type": "uint128"
+          },
+          {
+            "internalType": "address",
+            "name": "signer",
+            "type": "address"
+          },
+          {
+            "internalType": "address",
+            "name": "validatorShareContract",
+            "type": "address"
+          },
+          {
+            "internalType": "enum Status",
+            "name": "status",
+            "type": "uint8"
+          },
+          {
+            "internalType": "uint16",
+            "name": "infraCommissionRate",
+            "type": "uint16"
+          },
+          {
+            "internalType": "uint16",
+            "name": "commissionRate",
+            "type": "uint16"
+          }
+        ],
+        "internalType": "struct Validator",
+        "name": "val_",
+        "type": "tuple"
+      }
+    ],
+    "name": "addValidator",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "newOfficialSigner_",
+        "type": "address"
+      },
+      {
+        "internalType": "string",
+        "name": "checksummedNewOfficialSigner_",
+        "type": "string"
+      }
+    ],
+    "name": "changeOfficialSigner",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "committee",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "defaultInfraCommissionRate",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "getAllMinimalValidators",
+    "outputs": [
+      {
+        "internalType": "address[]",
+        "name": "",
+        "type": "address[]"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "getAllValidator",
+    "outputs": [
+      {
+        "internalType": "address[]",
+        "name": "validatorAddresses",
+        "type": "address[]"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "index_",
+        "type": "uint256"
+      }
+    ],
+    "name": "getMinimalValidatorByIndex",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "val_",
+        "type": "address"
+      },
+      {
+        "internalType": "bool",
+        "name": "revertIfNotFound_",
+        "type": "bool"
+      }
+    ],
+    "name": "getMinimalValidatorIndex",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      },
+      {
+        "internalType": "bool",
+        "name": "",
+        "type": "bool"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "getMinimalValidatorListLength",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "page",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "limit",
+        "type": "uint256"
+      }
+    ],
+    "name": "getMinimalValidatorsByPage",
+    "outputs": [
+      {
+        "internalType": "address[]",
+        "name": "",
+        "type": "address[]"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "page_",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "limit_",
+        "type": "uint256"
+      }
+    ],
+    "name": "getMinimalValidatorsWithValidatorPowerByPage",
+    "outputs": [
+      {
+        "internalType": "address[]",
+        "name": "minimalValidators",
+        "type": "address[]"
+      },
+      {
+        "internalType": "uint256[]",
+        "name": "",
+        "type": "uint256[]"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "getNewOfficialPoolValidBlock",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "getOldNewOfficialSignerAndValidBlock",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "index_",
+        "type": "uint256"
+      }
+    ],
+    "name": "getValidatorByIndex",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "page_",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "limit_",
+        "type": "uint256"
+      }
+    ],
+    "name": "getValidatorByPage",
+    "outputs": [
+      {
+        "internalType": "address[]",
+        "name": "validatorAddresses",
+        "type": "address[]"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "val_",
+        "type": "address"
+      },
+      {
+        "internalType": "bool",
+        "name": "revertIfNotFound_",
+        "type": "bool"
+      }
+    ],
+    "name": "getValidatorCurrentIndex",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      },
+      {
+        "internalType": "bool",
+        "name": "",
+        "type": "bool"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "val_",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "index_",
+        "type": "uint256"
+      }
+    ],
+    "name": "getValidatorIndexByIndex",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "val_",
+        "type": "address"
+      }
+    ],
+    "name": "getValidatorIndexLength",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "key_",
+        "type": "address"
+      }
+    ],
+    "name": "getValidatorInfo",
+    "outputs": [
+      {
+        "components": [
+          {
+            "internalType": "uint128",
+            "name": "amount",
+            "type": "uint128"
+          },
+          {
+            "internalType": "uint128",
+            "name": "delegatedAmount",
+            "type": "uint128"
+          },
+          {
+            "internalType": "uint128",
+            "name": "reward",
+            "type": "uint128"
+          },
+          {
+            "internalType": "uint128",
+            "name": "delegatorsReward",
+            "type": "uint128"
+          },
+          {
+            "internalType": "uint128",
+            "name": "infraCommissionAmount",
+            "type": "uint128"
+          },
+          {
+            "internalType": "uint128",
+            "name": "validatorCommissionAmount",
+            "type": "uint128"
+          },
+          {
+            "internalType": "uint128",
+            "name": "delegatorCommissionAmount",
+            "type": "uint128"
+          },
+          {
+            "internalType": "uint128",
+            "name": "minDeposit",
+            "type": "uint128"
+          },
+          {
+            "internalType": "address",
+            "name": "signer",
+            "type": "address"
+          },
+          {
+            "internalType": "address",
+            "name": "validatorShareContract",
+            "type": "address"
+          },
+          {
+            "internalType": "enum Status",
+            "name": "status",
+            "type": "uint8"
+          },
+          {
+            "internalType": "uint16",
+            "name": "infraCommissionRate",
+            "type": "uint16"
+          },
+          {
+            "internalType": "uint16",
+            "name": "commissionRate",
+            "type": "uint16"
+          }
+        ],
+        "internalType": "struct Validator",
+        "name": "",
+        "type": "tuple"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "key_",
+        "type": "address"
+      }
+    ],
+    "name": "getValidatorInfoAmount",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "index_",
+        "type": "uint256"
+      }
+    ],
+    "name": "getValidatorInfoAmountByIndex",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "index_",
+        "type": "uint256"
+      }
+    ],
+    "name": "getValidatorInfoByIndex",
+    "outputs": [
+      {
+        "components": [
+          {
+            "internalType": "uint128",
+            "name": "amount",
+            "type": "uint128"
+          },
+          {
+            "internalType": "uint128",
+            "name": "delegatedAmount",
+            "type": "uint128"
+          },
+          {
+            "internalType": "uint128",
+            "name": "reward",
+            "type": "uint128"
+          },
+          {
+            "internalType": "uint128",
+            "name": "delegatorsReward",
+            "type": "uint128"
+          },
+          {
+            "internalType": "uint128",
+            "name": "infraCommissionAmount",
+            "type": "uint128"
+          },
+          {
+            "internalType": "uint128",
+            "name": "validatorCommissionAmount",
+            "type": "uint128"
+          },
+          {
+            "internalType": "uint128",
+            "name": "delegatorCommissionAmount",
+            "type": "uint128"
+          },
+          {
+            "internalType": "uint128",
+            "name": "minDeposit",
+            "type": "uint128"
+          },
+          {
+            "internalType": "address",
+            "name": "signer",
+            "type": "address"
+          },
+          {
+            "internalType": "address",
+            "name": "validatorShareContract",
+            "type": "address"
+          },
+          {
+            "internalType": "enum Status",
+            "name": "status",
+            "type": "uint8"
+          },
+          {
+            "internalType": "uint16",
+            "name": "infraCommissionRate",
+            "type": "uint16"
+          },
+          {
+            "internalType": "uint16",
+            "name": "commissionRate",
+            "type": "uint16"
+          }
+        ],
+        "internalType": "struct Validator",
+        "name": "",
+        "type": "tuple"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "key_",
+        "type": "address"
+      }
+    ],
+    "name": "getValidatorInfoCommissionRate",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "index_",
+        "type": "uint256"
+      }
+    ],
+    "name": "getValidatorInfoCommissionRateByIndex",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "key_",
+        "type": "address"
+      }
+    ],
+    "name": "getValidatorInfoDelegatedAmount",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "index_",
+        "type": "uint256"
+      }
+    ],
+    "name": "getValidatorInfoDelegatedAmountByIndex",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "key_",
+        "type": "address"
+      }
+    ],
+    "name": "getValidatorInfoDelegatorCommissionAmount",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "index_",
+        "type": "uint256"
+      }
+    ],
+    "name": "getValidatorInfoDelegatorCommissionAmountByIndex",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "key_",
+        "type": "address"
+      }
+    ],
+    "name": "getValidatorInfoDelegatorsReward",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "index_",
+        "type": "uint256"
+      }
+    ],
+    "name": "getValidatorInfoDelegatorsRewardByIndex",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "key_",
+        "type": "address"
+      }
+    ],
+    "name": "getValidatorInfoInfraCommissionAmount",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "index_",
+        "type": "uint256"
+      }
+    ],
+    "name": "getValidatorInfoInfraCommissionAmountByIndex",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "key_",
+        "type": "address"
+      }
+    ],
+    "name": "getValidatorInfoInfraCommissionRate",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "index_",
+        "type": "uint256"
+      }
+    ],
+    "name": "getValidatorInfoInfraCommissionRateByIndex",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "key_",
+        "type": "address"
+      }
+    ],
+    "name": "getValidatorInfoMinDeposit",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "index_",
+        "type": "uint256"
+      }
+    ],
+    "name": "getValidatorInfoMinDepositByIndex",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "key_",
+        "type": "address"
+      }
+    ],
+    "name": "getValidatorInfoReward",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "index_",
+        "type": "uint256"
+      }
+    ],
+    "name": "getValidatorInfoRewardByIndex",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "key_",
+        "type": "address"
+      }
+    ],
+    "name": "getValidatorInfoSigner",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "index_",
+        "type": "uint256"
+      }
+    ],
+    "name": "getValidatorInfoSignerByIndex",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "key_",
+        "type": "address"
+      }
+    ],
+    "name": "getValidatorInfoStatus",
+    "outputs": [
+      {
+        "internalType": "enum Status",
+        "name": "",
+        "type": "uint8"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "index_",
+        "type": "uint256"
+      }
+    ],
+    "name": "getValidatorInfoStatusByIndex",
+    "outputs": [
+      {
+        "internalType": "enum Status",
+        "name": "",
+        "type": "uint8"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "key_",
+        "type": "address"
+      }
+    ],
+    "name": "getValidatorInfoValidatorCommissionAmount",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "index_",
+        "type": "uint256"
+      }
+    ],
+    "name": "getValidatorInfoValidatorCommissionAmountByIndex",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "key_",
+        "type": "address"
+      }
+    ],
+    "name": "getValidatorInfoValidatorShareContract",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "index_",
+        "type": "uint256"
+      }
+    ],
+    "name": "getValidatorInfoValidatorShareContractByIndex",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "getValidatorListLength",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "val_",
+        "type": "uint256"
+      },
+      {
+        "internalType": "enum ChangeMode",
+        "name": "mode_",
+        "type": "uint8"
+      }
+    ],
+    "name": "incDescDefaultInfraCommissionRate",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "val_",
+        "type": "uint256"
+      },
+      {
+        "internalType": "enum ChangeMode",
+        "name": "mode_",
+        "type": "uint8"
+      }
+    ],
+    "name": "incDescOfficialAmount",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "val_",
+        "type": "uint256"
+      },
+      {
+        "internalType": "enum ChangeMode",
+        "name": "mode_",
+        "type": "uint8"
+      }
+    ],
+    "name": "incDescOfficialLimit",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "val_",
+        "type": "uint256"
+      },
+      {
+        "internalType": "enum ChangeMode",
+        "name": "mode_",
+        "type": "uint8"
+      }
+    ],
+    "name": "incDescPoolAmount",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "val_",
+        "type": "uint256"
+      },
+      {
+        "internalType": "enum ChangeMode",
+        "name": "mode_",
+        "type": "uint8"
+      }
+    ],
+    "name": "incDescPoolLimit",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "val_",
+        "type": "uint256"
+      },
+      {
+        "internalType": "enum ChangeMode",
+        "name": "mode_",
+        "type": "uint8"
+      }
+    ],
+    "name": "incDescPoolSlashAmount",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "val_",
+        "type": "uint256"
+      },
+      {
+        "internalType": "enum ChangeMode",
+        "name": "mode_",
+        "type": "uint8"
+      }
+    ],
+    "name": "incDescSoloAmount",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "val_",
+        "type": "uint256"
+      },
+      {
+        "internalType": "enum ChangeMode",
+        "name": "mode_",
+        "type": "uint8"
+      }
+    ],
+    "name": "incDescSoloLimit",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "val_",
+        "type": "uint256"
+      },
+      {
+        "internalType": "enum ChangeMode",
+        "name": "mode_",
+        "type": "uint8"
+      }
+    ],
+    "name": "incDescTotalRewards",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "val_",
+        "type": "uint256"
+      },
+      {
+        "internalType": "enum ChangeMode",
+        "name": "mode_",
+        "type": "uint8"
+      }
+    ],
+    "name": "incDescTotalRewardsLiquidated",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "val_",
+        "type": "uint256"
+      },
+      {
+        "internalType": "enum ChangeMode",
+        "name": "mode_",
+        "type": "uint8"
+      }
+    ],
+    "name": "incDescTotalStaked",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "val_",
+        "type": "uint256"
+      },
+      {
+        "internalType": "enum ChangeMode",
+        "name": "mode_",
+        "type": "uint8"
+      }
+    ],
+    "name": "incDescUnallocatedReward",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "key_",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "val_",
+        "type": "uint256"
+      },
+      {
+        "internalType": "enum ChangeMode",
+        "name": "mode_",
+        "type": "uint8"
+      }
+    ],
+    "name": "incDescValidatorInfoAmount",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "index_",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "val_",
+        "type": "uint256"
+      },
+      {
+        "internalType": "enum ChangeMode",
+        "name": "mode_",
+        "type": "uint8"
+      }
+    ],
+    "name": "incDescValidatorInfoAmountByIndex",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "key_",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "val_",
+        "type": "uint256"
+      },
+      {
+        "internalType": "enum ChangeMode",
+        "name": "mode_",
+        "type": "uint8"
+      }
+    ],
+    "name": "incDescValidatorInfoCommissionRate",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "index_",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "val_",
+        "type": "uint256"
+      },
+      {
+        "internalType": "enum ChangeMode",
+        "name": "mode_",
+        "type": "uint8"
+      }
+    ],
+    "name": "incDescValidatorInfoCommissionRateByIndex",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "key_",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "val_",
+        "type": "uint256"
+      },
+      {
+        "internalType": "enum ChangeMode",
+        "name": "mode_",
+        "type": "uint8"
+      }
+    ],
+    "name": "incDescValidatorInfoDelegatedAmount",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "index_",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "val_",
+        "type": "uint256"
+      },
+      {
+        "internalType": "enum ChangeMode",
+        "name": "mode_",
+        "type": "uint8"
+      }
+    ],
+    "name": "incDescValidatorInfoDelegatedAmountByIndex",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "key_",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "val_",
+        "type": "uint256"
+      },
+      {
+        "internalType": "enum ChangeMode",
+        "name": "mode_",
+        "type": "uint8"
+      }
+    ],
+    "name": "incDescValidatorInfoDelegatorCommissionAmount",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "index_",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "val_",
+        "type": "uint256"
+      },
+      {
+        "internalType": "enum ChangeMode",
+        "name": "mode_",
+        "type": "uint8"
+      }
+    ],
+    "name": "incDescValidatorInfoDelegatorCommissionAmountByIndex",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "key_",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "val_",
+        "type": "uint256"
+      },
+      {
+        "internalType": "enum ChangeMode",
+        "name": "mode_",
+        "type": "uint8"
+      }
+    ],
+    "name": "incDescValidatorInfoDelegatorsReward",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "index_",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "val_",
+        "type": "uint256"
+      },
+      {
+        "internalType": "enum ChangeMode",
+        "name": "mode_",
+        "type": "uint8"
+      }
+    ],
+    "name": "incDescValidatorInfoDelegatorsRewardByIndex",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "key_",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "val_",
+        "type": "uint256"
+      },
+      {
+        "internalType": "enum ChangeMode",
+        "name": "mode_",
+        "type": "uint8"
+      }
+    ],
+    "name": "incDescValidatorInfoInfraCommissionAmount",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "index_",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "val_",
+        "type": "uint256"
+      },
+      {
+        "internalType": "enum ChangeMode",
+        "name": "mode_",
+        "type": "uint8"
+      }
+    ],
+    "name": "incDescValidatorInfoInfraCommissionAmountByIndex",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "key_",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "val_",
+        "type": "uint256"
+      },
+      {
+        "internalType": "enum ChangeMode",
+        "name": "mode_",
+        "type": "uint8"
+      }
+    ],
+    "name": "incDescValidatorInfoInfraCommissionRate",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "index_",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "val_",
+        "type": "uint256"
+      },
+      {
+        "internalType": "enum ChangeMode",
+        "name": "mode_",
+        "type": "uint8"
+      }
+    ],
+    "name": "incDescValidatorInfoInfraCommissionRateByIndex",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "key_",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "val_",
+        "type": "uint256"
+      },
+      {
+        "internalType": "enum ChangeMode",
+        "name": "mode_",
+        "type": "uint8"
+      }
+    ],
+    "name": "incDescValidatorInfoMinDeposit",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "index_",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "val_",
+        "type": "uint256"
+      },
+      {
+        "internalType": "enum ChangeMode",
+        "name": "mode_",
+        "type": "uint8"
+      }
+    ],
+    "name": "incDescValidatorInfoMinDepositByIndex",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "key_",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "val_",
+        "type": "uint256"
+      },
+      {
+        "internalType": "enum ChangeMode",
+        "name": "mode_",
+        "type": "uint8"
+      }
+    ],
+    "name": "incDescValidatorInfoReward",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "index_",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "val_",
+        "type": "uint256"
+      },
+      {
+        "internalType": "enum ChangeMode",
+        "name": "mode_",
+        "type": "uint8"
+      }
+    ],
+    "name": "incDescValidatorInfoRewardByIndex",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "key_",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "val_",
+        "type": "uint256"
+      },
+      {
+        "internalType": "enum ChangeMode",
+        "name": "mode_",
+        "type": "uint8"
+      }
+    ],
+    "name": "incDescValidatorInfoValidatorCommissionAmount",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "index_",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "val_",
+        "type": "uint256"
+      },
+      {
+        "internalType": "enum ChangeMode",
+        "name": "mode_",
+        "type": "uint8"
+      }
+    ],
+    "name": "incDescValidatorInfoValidatorCommissionAmountByIndex",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "nftContract_",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "validatorShareFactory_",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "slashManager_",
+        "type": "address"
+      }
+    ],
+    "name": "initialize1",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "stakeManager_",
+        "type": "address"
+      }
+    ],
+    "name": "initialize2",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "name": "initialized",
+    "outputs": [
+      {
+        "internalType": "bool",
+        "name": "",
+        "type": "bool"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "val_",
+        "type": "address"
+      }
+    ],
+    "name": "isInMinimalValidatorList",
+    "outputs": [
+      {
+        "internalType": "bool",
+        "name": "",
+        "type": "bool"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "validatorId_",
+        "type": "uint256"
+      }
+    ],
+    "name": "isInMinimalValidatorListByValidatorId",
+    "outputs": [
+      {
+        "internalType": "bool",
+        "name": "",
+        "type": "bool"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "val_",
+        "type": "address"
+      }
+    ],
+    "name": "isInValidatorList",
+    "outputs": [
+      {
+        "internalType": "bool",
+        "name": "",
+        "type": "bool"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "_signer",
+        "type": "address"
+      }
+    ],
+    "name": "isValidatorValid",
+    "outputs": [
+      {
+        "internalType": "bool",
+        "name": "",
+        "type": "bool"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "minimumPoolDelegate",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "minimumPoolStake",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "minimumSoloStake",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "nftContract",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "officialAmount",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "officialLimit",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "officialPool",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "poolAmount",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "poolLimit",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "poolSlashAmount",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "val_",
+        "type": "address"
+      }
+    ],
+    "name": "removeMinimalValidator",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "index_",
+        "type": "uint256"
+      }
+    ],
+    "name": "removeMinimalValidatorByIndex",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "_committee",
+        "type": "address"
+      }
+    ],
+    "name": "setCommittee",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "val_",
+        "type": "uint256"
+      }
+    ],
+    "name": "setDefaultInfraCommissionRate",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "_value",
+        "type": "uint256"
+      }
+    ],
+    "name": "setMinimumPoolDelegate",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "_value",
+        "type": "uint256"
+      }
+    ],
+    "name": "setMinimumPoolStake",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "_value",
+        "type": "uint256"
+      }
+    ],
+    "name": "setMinimumSoloStake",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "val_",
+        "type": "uint256"
+      }
+    ],
+    "name": "setOfficialAmount",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "val_",
+        "type": "uint256"
+      }
+    ],
+    "name": "setOfficialLimit",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "val_",
+        "type": "uint256"
+      }
+    ],
+    "name": "setPoolAmount",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "val_",
+        "type": "uint256"
+      }
+    ],
+    "name": "setPoolLimit",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "val_",
+        "type": "uint256"
+      }
+    ],
+    "name": "setPoolSlashAmount",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "_size",
+        "type": "uint256"
+      }
+    ],
+    "name": "setSlashEpochSize",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "_threshold",
+        "type": "uint256"
+      }
+    ],
+    "name": "setSlashEpochThreshold",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "slashManager_",
+        "type": "address"
+      }
+    ],
+    "name": "setSlashManager",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "val_",
+        "type": "uint256"
+      }
+    ],
+    "name": "setSoloAmount",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "val_",
+        "type": "uint256"
+      }
+    ],
+    "name": "setSoloLimit",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "val_",
+        "type": "uint256"
+      }
+    ],
+    "name": "setSoloSlashRate",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "stakeManager_",
+        "type": "address"
+      }
+    ],
+    "name": "setStakeManager",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "val_",
+        "type": "uint256"
+      }
+    ],
+    "name": "setTotalRewards",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "val_",
+        "type": "uint256"
+      }
+    ],
+    "name": "setTotalRewardsLiquidated",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "val_",
+        "type": "uint256"
+      }
+    ],
+    "name": "setTotalStaked",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "val_",
+        "type": "uint256"
+      }
+    ],
+    "name": "setUnallocatedReward",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "key_",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256[]",
+        "name": "validatorIds_",
+        "type": "uint256[]"
+      }
+    ],
+    "name": "setValidatorIds",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "key_",
+        "type": "address"
+      },
+      {
+        "components": [
+          {
+            "internalType": "uint128",
+            "name": "amount",
+            "type": "uint128"
+          },
+          {
+            "internalType": "uint128",
+            "name": "delegatedAmount",
+            "type": "uint128"
+          },
+          {
+            "internalType": "uint128",
+            "name": "reward",
+            "type": "uint128"
+          },
+          {
+            "internalType": "uint128",
+            "name": "delegatorsReward",
+            "type": "uint128"
+          },
+          {
+            "internalType": "uint128",
+            "name": "infraCommissionAmount",
+            "type": "uint128"
+          },
+          {
+            "internalType": "uint128",
+            "name": "validatorCommissionAmount",
+            "type": "uint128"
+          },
+          {
+            "internalType": "uint128",
+            "name": "delegatorCommissionAmount",
+            "type": "uint128"
+          },
+          {
+            "internalType": "uint128",
+            "name": "minDeposit",
+            "type": "uint128"
+          },
+          {
+            "internalType": "address",
+            "name": "signer",
+            "type": "address"
+          },
+          {
+            "internalType": "address",
+            "name": "validatorShareContract",
+            "type": "address"
+          },
+          {
+            "internalType": "enum Status",
+            "name": "status",
+            "type": "uint8"
+          },
+          {
+            "internalType": "uint16",
+            "name": "infraCommissionRate",
+            "type": "uint16"
+          },
+          {
+            "internalType": "uint16",
+            "name": "commissionRate",
+            "type": "uint16"
+          }
+        ],
+        "internalType": "struct Validator",
+        "name": "val_",
+        "type": "tuple"
+      }
+    ],
+    "name": "setValidatorInfo",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "key_",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "val_",
+        "type": "uint256"
+      }
+    ],
+    "name": "setValidatorInfoAmount",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "index_",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "val_",
+        "type": "uint256"
+      }
+    ],
+    "name": "setValidatorInfoAmountByIndex",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "index_",
+        "type": "uint256"
+      },
+      {
+        "components": [
+          {
+            "internalType": "uint128",
+            "name": "amount",
+            "type": "uint128"
+          },
+          {
+            "internalType": "uint128",
+            "name": "delegatedAmount",
+            "type": "uint128"
+          },
+          {
+            "internalType": "uint128",
+            "name": "reward",
+            "type": "uint128"
+          },
+          {
+            "internalType": "uint128",
+            "name": "delegatorsReward",
+            "type": "uint128"
+          },
+          {
+            "internalType": "uint128",
+            "name": "infraCommissionAmount",
+            "type": "uint128"
+          },
+          {
+            "internalType": "uint128",
+            "name": "validatorCommissionAmount",
+            "type": "uint128"
+          },
+          {
+            "internalType": "uint128",
+            "name": "delegatorCommissionAmount",
+            "type": "uint128"
+          },
+          {
+            "internalType": "uint128",
+            "name": "minDeposit",
+            "type": "uint128"
+          },
+          {
+            "internalType": "address",
+            "name": "signer",
+            "type": "address"
+          },
+          {
+            "internalType": "address",
+            "name": "validatorShareContract",
+            "type": "address"
+          },
+          {
+            "internalType": "enum Status",
+            "name": "status",
+            "type": "uint8"
+          },
+          {
+            "internalType": "uint16",
+            "name": "infraCommissionRate",
+            "type": "uint16"
+          },
+          {
+            "internalType": "uint16",
+            "name": "commissionRate",
+            "type": "uint16"
+          }
+        ],
+        "internalType": "struct Validator",
+        "name": "val_",
+        "type": "tuple"
+      }
+    ],
+    "name": "setValidatorInfoByIndex",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "key_",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "val_",
+        "type": "uint256"
+      }
+    ],
+    "name": "setValidatorInfoCommissionRate",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "index_",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "val_",
+        "type": "uint256"
+      }
+    ],
+    "name": "setValidatorInfoCommissionRateByIndex",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "key_",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "val_",
+        "type": "uint256"
+      }
+    ],
+    "name": "setValidatorInfoDelegatedAmount",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "index_",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "val_",
+        "type": "uint256"
+      }
+    ],
+    "name": "setValidatorInfoDelegatedAmountByIndex",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "key_",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "val_",
+        "type": "uint256"
+      }
+    ],
+    "name": "setValidatorInfoDelegatorCommissionAmount",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "index_",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "val_",
+        "type": "uint256"
+      }
+    ],
+    "name": "setValidatorInfoDelegatorCommissionAmountByIndex",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "key_",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "val_",
+        "type": "uint256"
+      }
+    ],
+    "name": "setValidatorInfoDelegatorsReward",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "index_",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "val_",
+        "type": "uint256"
+      }
+    ],
+    "name": "setValidatorInfoDelegatorsRewardByIndex",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "key_",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "val_",
+        "type": "uint256"
+      }
+    ],
+    "name": "setValidatorInfoInfraCommissionAmount",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "index_",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "val_",
+        "type": "uint256"
+      }
+    ],
+    "name": "setValidatorInfoInfraCommissionAmountByIndex",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "key_",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "val_",
+        "type": "uint256"
+      }
+    ],
+    "name": "setValidatorInfoInfraCommissionRate",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "index_",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "val_",
+        "type": "uint256"
+      }
+    ],
+    "name": "setValidatorInfoInfraCommissionRateByIndex",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "key_",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "val_",
+        "type": "uint256"
+      }
+    ],
+    "name": "setValidatorInfoMinDeposit",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "index_",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "val_",
+        "type": "uint256"
+      }
+    ],
+    "name": "setValidatorInfoMinDepositByIndex",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "key_",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "val_",
+        "type": "uint256"
+      }
+    ],
+    "name": "setValidatorInfoReward",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "index_",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "val_",
+        "type": "uint256"
+      }
+    ],
+    "name": "setValidatorInfoRewardByIndex",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "key_",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "val_",
+        "type": "address"
+      }
+    ],
+    "name": "setValidatorInfoSigner",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "index_",
+        "type": "uint256"
+      },
+      {
+        "internalType": "address",
+        "name": "val_",
+        "type": "address"
+      }
+    ],
+    "name": "setValidatorInfoSignerByIndex",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "key_",
+        "type": "address"
+      },
+      {
+        "internalType": "enum Status",
+        "name": "val_",
+        "type": "uint8"
+      }
+    ],
+    "name": "setValidatorInfoStatus",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "index_",
+        "type": "uint256"
+      },
+      {
+        "internalType": "enum Status",
+        "name": "val_",
+        "type": "uint8"
+      }
+    ],
+    "name": "setValidatorInfoStatusByIndex",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "key_",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "val_",
+        "type": "uint256"
+      }
+    ],
+    "name": "setValidatorInfoValidatorCommissionAmount",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "index_",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "val_",
+        "type": "uint256"
+      }
+    ],
+    "name": "setValidatorInfoValidatorCommissionAmountByIndex",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "key_",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "val_",
+        "type": "address"
+      }
+    ],
+    "name": "setValidatorInfoValidatorShareContract",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "index_",
+        "type": "uint256"
+      },
+      {
+        "internalType": "address",
+        "name": "val_",
+        "type": "address"
+      }
+    ],
+    "name": "setValidatorInfoValidatorShareContractByIndex",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "validatorShareFactory_",
+        "type": "address"
+      }
+    ],
+    "name": "setValidatorShareFactory",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "slashEpochSize",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "slashEpochThreshold",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "slashManager",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "soloAmount",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "soloLimit",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "soloSlashRate",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "stakeManager",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "totalRewards",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "totalRewardsLiquidated",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "totalStaked",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "unallocatedReward",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "validatorShareFactory",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  }
+]
