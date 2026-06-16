@@ -187,49 +187,63 @@ export function StakeManagerClient() {
             {nodes.map((node) => {
               const id = node.id.toString();
               const open = openIds.has(id);
-              if (open) {
-                return (
-                  <div key={id} className="animate-reveal">
-                    <Button variant="ghost" onClick={() => toggle(id)} className="mb-2" aria-expanded>
-                      <Chevron direction="down" className="h-3.5 w-3.5" />
-                      Collapse
-                    </Button>
-                    <NodeManagePanel node={node} account={address} onDone={refetch} />
-                  </div>
-                );
-              }
+              const panelId = `node-panel-${id}`;
               return (
-                <button
+                <div
                   key={id}
-                  type="button"
-                  onClick={() => toggle(id)}
-                  aria-expanded={false}
-                  className="flex w-full items-center gap-3 rounded-card border border-line bg-white p-4 text-left transition-colors hover:border-brand/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/30"
+                  className={`overflow-hidden rounded-card border bg-white transition-colors ${
+                    open ? "border-brand/30 shadow-sm" : "border-line"
+                  }`}
                 >
-                  <Avatar src={node.logo} name={node.name} address={node.signer} size={40} />
-                  <div className="min-w-0 flex-1">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <span className="font-medium text-ink">
-                        {node.name ?? shortenAddress(node.signer)}
-                      </span>
-                      <StatusBadge status={node.status} />
-                      <span className="rounded-full bg-surface px-2 py-0.5 text-xs text-ink-soft">
-                        {node.isPool ? "Pool" : "Solo"} · ID {node.id.toString()}
+                  <button
+                    type="button"
+                    onClick={() => toggle(id)}
+                    aria-expanded={open}
+                    aria-controls={panelId}
+                    className="flex w-full items-center gap-3 p-4 text-left transition-colors hover:bg-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-brand/30"
+                  >
+                    <Avatar src={node.logo} name={node.name} address={node.signer} size={40} />
+                    <div className="min-w-0 flex-1">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="font-medium text-ink">
+                          {node.name ?? shortenAddress(node.signer)}
+                        </span>
+                        <StatusBadge status={node.status} />
+                        <span className="rounded-full bg-surface px-2 py-0.5 text-xs text-ink-soft">
+                          {node.isPool ? "Pool" : "Solo"} · ID {node.id.toString()}
+                        </span>
+                      </div>
+                      <span className="font-mono text-xs text-ink-muted">
+                        {shortenAddress(node.signer, 6)}
                       </span>
                     </div>
-                    <span className="font-mono text-xs text-ink-muted">
-                      {shortenAddress(node.signer, 6)}
-                    </span>
+                    <div className="text-right">
+                      <p className="font-semibold text-ink">{formatKUBDisplay(node.totalStake)} KUB</p>
+                      <p className="text-xs text-ink-muted">
+                        {(node.powerRatio * 100).toFixed(2)}%
+                        {node.isPool ? ` · fee ${bpsToPercent(node.commissionRate)}` : ""}
+                      </p>
+                    </div>
+                    <Chevron
+                      className={`ml-1 h-4 w-4 shrink-0 text-ink-muted transition-transform duration-200 ${
+                        open ? "rotate-90" : ""
+                      }`}
+                    />
+                  </button>
+
+                  {/* grid-rows collapse animates open AND close without a magic max-height */}
+                  <div
+                    className={`grid transition-[grid-template-rows] duration-200 ease-out ${
+                      open ? "grid-rows-[1fr]" : "grid-rows-[0fr]"
+                    }`}
+                  >
+                    <div id={panelId} className="overflow-hidden" inert={!open || undefined}>
+                      <div className="px-5 pb-5">
+                        <NodeManagePanel node={node} account={address} onDone={refetch} />
+                      </div>
+                    </div>
                   </div>
-                  <div className="text-right">
-                    <p className="font-semibold text-ink">{formatKUBDisplay(node.totalStake)} KUB</p>
-                    <p className="text-xs text-ink-muted">
-                      {(node.powerRatio * 100).toFixed(2)}%
-                      {node.isPool ? ` · fee ${bpsToPercent(node.commissionRate)}` : ""}
-                    </p>
-                  </div>
-                  <Chevron className="ml-1 h-4 w-4 shrink-0 text-ink-muted" />
-                </button>
+                </div>
               );
             })}
           </div>

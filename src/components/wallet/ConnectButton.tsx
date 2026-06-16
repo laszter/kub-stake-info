@@ -23,11 +23,17 @@ export function ConnectButton() {
 
   if (isConnected && address) {
     return (
-      <div className="flex items-center gap-2">
+      <div className="flex shrink-0 items-center gap-2">
         <span className="rounded-full bg-surface px-3 py-1.5 font-mono text-sm text-ink">
           {shortenAddress(address)}
         </span>
-        <Button variant="neutral" onClick={() => disconnect()}>
+        {/* On mobile the Disconnect action moves into the menu to avoid a
+            three-control crush in the top bar; show it inline from sm up. */}
+        <Button
+          variant="neutral"
+          onClick={() => disconnect()}
+          className="hidden sm:inline-flex"
+        >
           Disconnect
         </Button>
       </div>

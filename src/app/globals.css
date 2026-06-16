@@ -34,6 +34,8 @@
 
 html {
   scroll-behavior: smooth;
+  /* Keep #hash targets (e.g. "/#nodes") clear of the sticky 4rem header. */
+  scroll-padding-top: 5rem;
 }
 
 body {

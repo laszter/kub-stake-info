@@ -6,12 +6,10 @@ import { formatEther, parseEther } from "viem";
 import { kubChain } from "@/lib/chain";
 import { useTx } from "@/hooks/useTx";
 import type { MyNode } from "@/hooks/useMyNodes";
-import { formatKUBDisplay, bpsToPercent, shortenAddress } from "@/lib/format";
-import { Avatar } from "@/components/ui/Avatar";
+import { formatKUBDisplay, bpsToPercent } from "@/lib/format";
 import { Button } from "@/components/ui/Button";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { InfoHint } from "@/components/ui/InfoHint";
-import { StatusBadge } from "@/components/nodes/StatusBadge";
 import { TxStatusModal } from "./TxStatusModal";
 
 /** Native-token gas headroom left untouched when "Max" fills a spend field. */
@@ -259,30 +257,8 @@ export function NodeManagePanel({
   const busy = tx.isBusy;
 
   return (
-    <div className="rounded-card border border-brand/30 bg-white p-5 shadow-sm">
-      {/* Node header */}
-      <div className="flex items-center gap-3">
-        <Avatar src={node.logo} name={node.name} address={node.signer} size={44} />
-        <div className="min-w-0 flex-1">
-          <div className="flex flex-wrap items-center gap-2">
-            <p className="font-semibold text-ink">{node.name ?? shortenAddress(node.signer)}</p>
-            <StatusBadge status={node.status} />
-            <span className="rounded-full bg-surface px-2 py-0.5 text-xs text-ink-soft">
-              {node.isPool ? "Pool" : "Solo"} · ID {node.id.toString()}
-            </span>
-          </div>
-          <p className="font-mono text-xs text-ink-muted">{shortenAddress(node.signer, 6)}</p>
-        </div>
-        <div className="text-right">
-          <p className="font-bold text-ink">{formatKUBDisplay(node.totalStake)} KUB</p>
-          <p className="text-xs text-ink-muted">
-            {(node.powerRatio * 100).toFixed(2)}%
-            {node.isPool ? ` · fee ${bpsToPercent(node.commissionRate)}` : ""}
-          </p>
-        </div>
-      </div>
-
-      <div className="mt-4 space-y-4">
+    <>
+      <div className="space-y-4">
         <Section title="Stake">
           <AmountAction
             label="Restake (add)"
@@ -428,6 +404,6 @@ export function NodeManagePanel({
       />
 
       <TxStatusModal status={tx.status} hash={tx.hash} error={tx.error} onClose={tx.reset} />
-    </div>
+    </>
   );
 }
