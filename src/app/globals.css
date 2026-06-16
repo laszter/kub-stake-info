@@ -10,13 +10,21 @@
   --color-surface: #fbfafc;
   --color-ink: #1a1d21;
   --color-ink-soft: #606060;
-  --color-ink-muted: #919191;
+  /* #707070 clears WCAG AA (4.9:1 on white) for small secondary text;
+     the old #919191 only hit ~3.1:1 and failed for body copy. */
+  --color-ink-muted: #707070;
   --color-line: #ececec;
+
+  /* Destructive actions (unstake/remove funds). Kept distinct from the
+     amber `warning` used for wrong-network and the "Unstaked" status. */
+  --color-danger: #dc2626;
+  --color-danger-dark: #b91c1c;
+  --color-danger-light: #fef2f2;
 
   /* Status */
   --color-status-active: #0eb366;
   --color-status-unstaked: #b45309;
-  --color-status-idle: #919191;
+  --color-status-idle: #707070;
 
   --font-sans: var(--font-roboto), ui-sans-serif, system-ui, -apple-system,
     "Segoe UI", Roboto, sans-serif;
@@ -42,4 +50,43 @@ body {
 .scrollbar-thin::-webkit-scrollbar-thumb {
   background: var(--color-line);
   border-radius: 9999px;
+}
+
+/* Entrance motion for revealed surfaces (forms, panels, modals). Subtle and
+   purposeful: conveys "this just arrived", not decoration. */
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+}
+@keyframes reveal-up {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+}
+.animate-fade {
+  animation: fade-in 0.15s ease-out both;
+}
+.animate-reveal {
+  /* ease-out-quint: natural deceleration, no bounce */
+  animation: reveal-up 0.2s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+  /* The loading spinner still conveys an in-flight request — keep it turning. */
+  .animate-spin {
+    animation-duration: 0.8s !important;
+    animation-iteration-count: infinite !important;
+  }
 }

@@ -1,18 +1,19 @@
 import Link from "next/link";
 import { Logo } from "@/components/ui/Logo";
 import { MobileNav } from "./MobileNav";
+import { ConnectButton } from "@/components/wallet/ConnectButton";
 import { EXPLORER_URL } from "@/lib/chain";
-import { STAKE_MANAGER_ADDRESS } from "@/lib/contract";
+import { STAKE_MANAGER_V2_ADDRESS } from "@/lib/contract";
 
 const navLinks = [
   { label: "Overview", href: "/" },
   { label: "Nodes", href: "/#nodes" },
+  { label: "Stake Manager", href: "/stake-manager" },
   {
     label: "KUB Scan",
-    href: `${EXPLORER_URL}/address/${STAKE_MANAGER_ADDRESS}`,
+    href: `${EXPLORER_URL}/address/${STAKE_MANAGER_V2_ADDRESS}`,
     external: true,
   },
-  { label: "Staking", href: "https://staking.kubchain.com", external: true },
 ];
 
 export function Header() {
@@ -51,14 +52,7 @@ export function Header() {
         </nav>
 
         <div className="flex items-center gap-2">
-          <a
-            href={`${EXPLORER_URL}/address/${STAKE_MANAGER_ADDRESS}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="rounded-full bg-brand px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-brand-dark"
-          >
-            View Contract
-          </a>
+          <ConnectButton />
           <MobileNav links={navLinks} />
         </div>
       </div>

@@ -11,12 +11,18 @@ and presents it with a UI modelled on [staking.kubchain.com](https://staking.kub
 - **Node detail** (`/nodes/[address]`) — every field exposed by the contract for
   a validator: self stake, delegated amount, rewards, commission rates &
   accrued amounts, signer, share contract, status.
+- **Stake Manager** (`/stake-manager`) — connect a wallet to manage the validator
+  nodes **you own**: stake, restake, unstake, unstake-partial, claim rewards, and
+  update commission / min-delegated / delegation. Writes go to `StakeManagerV2`
+  ([`0x4435…A80F`](https://www.kubscan.com/address/0x443502b3F7C0934576F49CDa084f78640f56A80F));
+  every action is simulated before signing. See [`TASKS-STAKE-MANAGER.md`](./TASKS-STAKE-MANAGER.md).
 
 ## Stack
 
 - **Next.js 16** (App Router, RSC, ISR) · **React 19** · **Tailwind CSS v4**
 - **viem** for type-safe contract reads, batched through **Multicall3**
-- Data is read server-side and revalidated every 60s (`export const revalidate = 60`)
+- **wagmi** + **@tanstack/react-query** for wallet connection and write transactions (Stake Manager)
+- Read-only pages are rendered server-side and revalidated every 60s (`export const revalidate = 60`); Stake Manager reads/writes happen client-side via the connected wallet
 
 ## Getting started
 

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Roboto } from "next/font/google";
 import "./globals.css";
+import { Web3Provider } from "@/providers/Web3Provider";
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
 
@@ -27,9 +28,11 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${roboto.variable} h-full antialiased`}>
       <body className="flex min-h-full flex-col bg-white text-ink">
-        <Header />
-        <main className="flex-1">{children}</main>
-        <Footer />
+        <Web3Provider>
+          <Header />
+          <main className="flex-1">{children}</main>
+          <Footer />
+        </Web3Provider>
       </body>
     </html>
   );

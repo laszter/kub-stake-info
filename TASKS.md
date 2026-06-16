@@ -23,6 +23,8 @@
 
 > เหลือเฉพาะ **deploy ขึ้น cloud จริง** (Phase 8 ข้อสุดท้าย) ซึ่งเป็น action ของผู้ใช้
 
+> 🔗 **ฟีเจอร์ต่อยอด:** เมนู **Stake Manager** (connect wallet + stake/restake/unstake/unstakePartial/claim/จัดการ node ของตัวเอง) — แผนงานอยู่ที่ [`TASKS-STAKE-MANAGER.md`](./TASKS-STAKE-MANAGER.md)
+
 ---
 
 ## 0. เป้าหมายของโปรเจกต์ (Goal)
