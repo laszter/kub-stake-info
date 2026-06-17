@@ -10,6 +10,10 @@
   --color-brand: #0eb366;
   --color-brand-dark: #0c9a57;
   --color-brand-light: #e7f8f0;
+  /* Text/icons on a filled brand surface. Dark-on-green (not white) clears
+     WCAG AA — white on #0eb366 is only 2.7:1; this is 6.8:1 (5.1:1 on the
+     darker hover shade) and works in both themes since the brand stays bright. */
+  --color-on-brand: #06160d;
 
   /* Surfaces & ink.
      bg      = page background
@@ -129,6 +133,13 @@ body {
 .animate-reveal {
   /* ease-out-quint: natural deceleration, no bounce */
   animation: reveal-up 0.2s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* Chevron in a <details> disclosure points down when the section is open.
+   Pairs with `transition-transform`; the reduced-motion block below makes it
+   snap instead of animate. */
+details[open] .disclosure-icon {
+  transform: rotate(90deg);
 }
 
 @media (prefers-reduced-motion: reduce) {

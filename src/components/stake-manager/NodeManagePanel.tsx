@@ -5,7 +5,7 @@ import { useBalance } from "wagmi";
 import { formatEther, parseEther } from "viem";
 import { kubChain } from "@/lib/chain";
 import { useTx } from "@/hooks/useTx";
-import type { MyNode } from "@/hooks/useMyNodes";
+import { REFRESH_MS, type MyNode } from "@/hooks/useMyNodes";
 import { formatKUBDisplay, bpsToPercent } from "@/lib/format";
 import { Button } from "@/components/ui/Button";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
@@ -217,7 +217,11 @@ export function NodeManagePanel({
   const tx = useTx();
   const [commission, setCommission] = useState("");
   const [pending, setPending] = useState<Pending | null>(null);
-  const { data: balance } = useBalance({ address: account, chainId: kubChain.id });
+  const { data: balance, refetch: refetchBalance } = useBalance({
+    address: account,
+    chainId: kubChain.id,
+    query: { refetchInterval: REFRESH_MS },
+  });
 
   const walletKub = balance?.value ?? 0n;
   // Leave gas headroom so "Max" on a native-token spend doesn't guarantee a fail.
@@ -234,7 +238,10 @@ export function NodeManagePanel({
       account,
       chainId: kubChain.id,
     });
-    if (ok) onDone();
+    if (ok) {
+      onDone();
+      refetchBalance();
+    }
   }
 
   /** Run immediately (the wallet popup is the only confirmation). */

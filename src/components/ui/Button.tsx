@@ -5,7 +5,7 @@ type Size = "sm" | "md";
 
 const VARIANTS: Record<Variant, string> = {
   // Page/section-level commit actions.
-  primary: "bg-brand text-white hover:bg-brand-dark focus-visible:ring-brand/40",
+  primary: "bg-brand text-on-brand hover:bg-brand-dark focus-visible:ring-brand/40",
   // In-row "do it" actions that aren't destructive (Restake, Claim, Update…).
   secondary:
     "border border-brand text-brand hover:bg-brand-light focus-visible:ring-brand/40",
