@@ -1,3 +1,9 @@
+# Task & planning notes
+
+Any task lists, planning notes, or scratch specs (e.g. `TASKS-*.md`) go in the
+`task/` folder, never in the repo root. The whole `task/` folder is git-ignored,
+so these stay local and out of version control.
+
 <!-- BEGIN:nextjs-agent-rules -->
 # This is NOT the Next.js you know
 

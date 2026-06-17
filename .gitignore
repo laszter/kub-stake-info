@@ -43,3 +43,6 @@ next-env.d.ts
 .claude/
 .impeccable/
 .research/
+
+# local task / planning notes — not part of the repo
+task/
