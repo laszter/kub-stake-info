@@ -1,12 +1,22 @@
 @import "tailwindcss";
 
+/* Class-based dark mode: `dark:` utilities apply under <html class="dark">.
+   We also flip the semantic --color-* tokens below, so most components turn
+   dark automatically without per-element `dark:` variants. */
+@custom-variant dark (&:where(.dark, .dark *));
+
 @theme {
   /* KUB brand palette (sampled from staking.kubchain.com) */
   --color-brand: #0eb366;
   --color-brand-dark: #0c9a57;
   --color-brand-light: #e7f8f0;
 
-  /* Surfaces & ink */
+  /* Surfaces & ink.
+     bg      = page background
+     card    = raised panels/cards/modals (was the hard-coded `bg-white`)
+     surface = subtle fill (footer, pills, hover, insets) */
+  --color-bg: #ffffff;
+  --color-card: #ffffff;
   --color-surface: #fbfafc;
   --color-ink: #1a1d21;
   --color-ink-soft: #606060;
@@ -21,6 +31,13 @@
   --color-danger-dark: #b91c1c;
   --color-danger-light: #fef2f2;
 
+  /* Warning (wrong-network, invalid input, "Unstaked" status). Amber, kept
+     distinct from the red `danger`. Folds the old amber-50/200/400/600/700/800
+     literals into three flip-aware tokens. */
+  --color-warning: #b45309;
+  --color-warning-light: #fffbeb;
+  --color-warning-border: #fde68a;
+
   /* Status */
   --color-status-active: #0eb366;
   --color-status-unstaked: #b45309;
@@ -32,6 +49,45 @@
   --radius-card: 0.875rem;
 }
 
+/* Dark theme: override the semantic tokens. Every utility that resolves to a
+   var(--color-*) (bg-card, text-ink, border-line, ring-brand/40, …) flips here.
+   Brand/danger/warning hues are nudged brighter so they read on dark surfaces.
+   Values are a sensible baseline — verify WCAG AA and tune as needed. */
+.dark {
+  --color-bg: #0b0e12;
+  --color-card: #141a22;
+  --color-surface: #1a212b;
+  --color-line: #29313d;
+
+  --color-ink: #e7eaee;
+  --color-ink-soft: #b4bcc7;
+  --color-ink-muted: #8e97a4;
+
+  --color-brand: #16c47e;
+  --color-brand-dark: #19b878;
+  --color-brand-light: #0f2a1f;
+
+  --color-danger: #f06560;
+  --color-danger-dark: #e2554f;
+  --color-danger-light: #2a1614;
+
+  --color-warning: #fbbf24;
+  --color-warning-light: #2a2109;
+  --color-warning-border: #4a3a12;
+
+  --color-status-active: #16c47e;
+  --color-status-unstaked: #fbbf24;
+  --color-status-idle: #8e97a4;
+}
+
+/* Native form controls, scrollbars and autofill follow the active theme. */
+:root {
+  color-scheme: light;
+}
+.dark {
+  color-scheme: dark;
+}
+
 html {
   scroll-behavior: smooth;
   /* Keep #hash targets (e.g. "/#nodes") clear of the sticky 4rem header. */
@@ -39,7 +95,7 @@ html {
 }
 
 body {
-  background: #ffffff;
+  background: var(--color-bg);
   color: var(--color-ink);
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;

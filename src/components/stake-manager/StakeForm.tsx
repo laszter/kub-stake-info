@@ -66,7 +66,7 @@ export function StakeForm({
     "w-full rounded-lg border py-2 text-sm outline-none transition-colors focus:border-brand focus:ring-2 focus:ring-brand/20";
 
   return (
-    <div className="animate-reveal rounded-card border border-line bg-white p-5">
+    <div className="animate-reveal rounded-card border border-line bg-card p-5">
       <div className="flex items-center justify-between">
         <h3 className="font-bold text-ink">Stake a new node</h3>
         <Button variant="ghost" onClick={onCancel}>
@@ -86,11 +86,11 @@ export function StakeForm({
             placeholder="0x…"
             aria-invalid={signer ? !signerValid : undefined}
             className={`mt-1 px-3 font-mono ${inputBase} ${
-              signer && !signerValid ? "border-amber-400" : "border-line"
+              signer && !signerValid ? "border-warning" : "border-line"
             }`}
           />
           {signer && !signerValid && (
-            <span className="text-xs text-amber-600">Not a valid address</span>
+            <span className="text-xs text-warning">Not a valid address</span>
           )}
         </label>
 

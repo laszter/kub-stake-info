@@ -6,14 +6,14 @@ import { Avatar } from "@/components/ui/Avatar";
 export function SoloNodeTable({ rows }: { rows: ValidatorCardView[] }) {
   if (rows.length === 0) {
     return (
-      <p className="rounded-card border border-line bg-white px-5 py-8 text-center text-sm text-ink-muted">
+      <p className="rounded-card border border-line bg-card px-5 py-8 text-center text-sm text-ink-muted">
         No solo nodes found.
       </p>
     );
   }
 
   return (
-    <div className="scrollbar-thin overflow-x-auto rounded-card border border-line bg-white">
+    <div className="scrollbar-thin overflow-x-auto rounded-card border border-line bg-card">
       <table className="w-full min-w-[480px] text-sm">
         <thead>
           <tr className="border-b border-line text-left text-xs uppercase tracking-wide text-ink-muted">

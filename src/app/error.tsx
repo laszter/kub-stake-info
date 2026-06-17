@@ -9,7 +9,7 @@ export default function Error({
 }) {
   return (
     <div className="mx-auto flex max-w-md flex-col items-center px-4 py-24 text-center">
-      <div className="flex h-14 w-14 items-center justify-center rounded-full bg-amber-50 text-2xl">
+      <div className="flex h-14 w-14 items-center justify-center rounded-full bg-warning-light text-2xl">
         ⚠️
       </div>
       <h1 className="mt-4 text-xl font-bold text-ink">

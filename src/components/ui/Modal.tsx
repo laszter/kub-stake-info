@@ -85,7 +85,7 @@ export function Modal({
 
   return (
     <div
-      className="animate-fade fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+      className="animate-fade fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 dark:bg-black/70"
       onMouseDown={(e) => {
         if (dismissible && e.target === e.currentTarget) onClose();
       }}
@@ -97,7 +97,7 @@ export function Modal({
         aria-labelledby={labelledBy}
         aria-describedby={describedBy}
         tabIndex={-1}
-        className={`animate-reveal w-full rounded-card bg-white shadow-xl focus:outline-none ${className}`}
+        className={`animate-reveal w-full rounded-card bg-card shadow-xl ring-1 ring-line/60 focus:outline-none ${className}`}
       >
         {children}
       </div>

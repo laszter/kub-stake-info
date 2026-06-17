@@ -36,7 +36,7 @@ function Stat({
 
 export function StatsBar({ stats }: { stats: GlobalStats }) {
   return (
-    <div className="grid grid-cols-1 divide-y divide-line rounded-card border border-line bg-white shadow-sm sm:grid-cols-3 sm:divide-x sm:divide-y-0">
+    <div className="grid grid-cols-1 divide-y divide-line rounded-card border border-line bg-card shadow-sm sm:grid-cols-3 sm:divide-x sm:divide-y-0">
       <Stat
         value={stats.totalValidators.toLocaleString("en-US")}
         label="Total Validators"

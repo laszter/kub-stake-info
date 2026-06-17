@@ -17,7 +17,7 @@ export function ValidatorCard({ v }: { v: ValidatorCardView }) {
   return (
     <Link
       href={`/nodes/${v.address}`}
-      className="group flex flex-col rounded-card border border-line bg-white p-5 transition-all hover:border-brand/40 hover:shadow-md"
+      className="group flex flex-col rounded-card border border-line bg-card p-5 transition-all hover:border-brand/40 hover:shadow-md"
     >
       <div className="flex flex-col items-center text-center">
         <Avatar src={v.logo} name={v.name} address={v.address} size={56} />
@@ -48,7 +48,7 @@ export function ValidatorRow({ v }: { v: ValidatorCardView }) {
   return (
     <Link
       href={`/nodes/${v.address}`}
-      className="group flex items-center gap-4 rounded-card border border-line bg-white px-5 py-3.5 transition-all hover:border-brand/40 hover:shadow-sm"
+      className="group flex items-center gap-4 rounded-card border border-line bg-card px-5 py-3.5 transition-all hover:border-brand/40 hover:shadow-sm"
     >
       <Avatar src={v.logo} name={v.name} address={v.address} size={40} />
       <div className="min-w-0 flex-1">

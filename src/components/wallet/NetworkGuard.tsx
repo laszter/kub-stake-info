@@ -11,9 +11,9 @@ export function NetworkGuard({ children }: { children: React.ReactNode }) {
 
   if (isConnected && chainId !== kubChain.id) {
     return (
-      <div className="rounded-card border border-amber-200 bg-amber-50 p-6 text-center">
-        <p className="font-medium text-amber-800">Wrong network</p>
-        <p className="mt-1 text-sm text-amber-700">
+      <div className="rounded-card border border-warning-border bg-warning-light p-6 text-center">
+        <p className="font-medium text-warning">Wrong network</p>
+        <p className="mt-1 text-sm text-warning">
           Stake Manager works on KUB Chain (chainId {kubChain.id}). Please switch
           networks.
         </p>

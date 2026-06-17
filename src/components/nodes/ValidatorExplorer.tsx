@@ -131,7 +131,7 @@ export function ValidatorExplorer({
   return (
     <div id="nodes" className="scroll-mt-20 space-y-10">
       {/* ---------- Pool Node ---------- */}
-      <section className="rounded-card border border-line bg-white p-5 sm:p-6">
+      <section className="rounded-card border border-line bg-card p-5 sm:p-6">
         <SectionHeading title="Pool Node" count={filteredPools.length} />
 
         {/* Toolbar */}
@@ -153,7 +153,7 @@ export function ValidatorExplorer({
                 setSoloPage(1);
               }}
               placeholder="Search by name, wallet address"
-              className="w-full rounded-full border border-line bg-white py-2 pl-9 pr-4 text-sm outline-none transition-colors focus:border-brand"
+              className="w-full rounded-full border border-line bg-card py-2 pl-9 pr-4 text-sm outline-none transition-colors focus:border-brand"
             />
           </div>
 
@@ -163,7 +163,7 @@ export function ValidatorExplorer({
               <select
                 value={sort}
                 onChange={(e) => setSort(e.target.value as SortKey)}
-                className="rounded-md border border-line bg-white px-2 py-1.5 text-sm text-ink outline-none focus:border-brand"
+                className="rounded-md border border-line bg-card px-2 py-1.5 text-sm text-ink outline-none focus:border-brand"
               >
                 {SORT_OPTIONS.map((o) => (
                   <option key={o.key} value={o.key}>
@@ -206,7 +206,7 @@ export function ValidatorExplorer({
       </section>
 
       {/* ---------- Solo Node ---------- */}
-      <section className="rounded-card border border-line bg-white p-5 sm:p-6">
+      <section className="rounded-card border border-line bg-card p-5 sm:p-6">
         <SectionHeading title="Solo Node" count={filteredSolos.length} />
         <div className="mt-5">
           <SoloNodeTable rows={solosOnPage} />

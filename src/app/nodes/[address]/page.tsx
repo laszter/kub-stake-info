@@ -40,7 +40,7 @@ function Tile({
   title?: string;
 }) {
   return (
-    <div className="rounded-card border border-line bg-white p-4">
+    <div className="rounded-card border border-line bg-card p-4">
       <p className="text-xs uppercase tracking-wide text-ink-muted">{label}</p>
       <p
         className="mt-1.5 truncate text-lg font-bold text-ink"
@@ -113,7 +113,7 @@ export default async function NodeDetailPage({
       </Link>
 
       {/* Header */}
-      <div className="flex flex-col gap-4 rounded-card border border-line bg-white p-5 sm:flex-row sm:items-center sm:p-6">
+      <div className="flex flex-col gap-4 rounded-card border border-line bg-card p-5 sm:flex-row sm:items-center sm:p-6">
         <Avatar src={v.logo} name={v.name} address={v.address} size={64} />
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2.5">
@@ -180,7 +180,7 @@ export default async function NodeDetailPage({
       </section>
 
       {/* Technical */}
-      <section className="rounded-card border border-line bg-white px-5 py-2 sm:px-6">
+      <section className="rounded-card border border-line bg-card px-5 py-2 sm:px-6">
         <h2 className="border-b border-line py-3 text-sm font-bold uppercase tracking-wide text-ink-muted">
           Technical
         </h2>

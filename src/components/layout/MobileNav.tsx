@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { useAccount, useDisconnect } from "wagmi";
 import { NavLinks, type NavLink } from "./NavLinks";
 import { shortenAddress } from "@/lib/format";
+import { useWalletAuth } from "@/providers/WalletAuthProvider";
 
 export function MobileNav({ links }: { links: NavLink[] }) {
   const [open, setOpen] = useState(false);
@@ -12,6 +13,7 @@ export function MobileNav({ links }: { links: NavLink[] }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const { address, isConnected } = useAccount();
   const { disconnect } = useDisconnect();
+  const { isVerified, reset } = useWalletAuth();
 
   // Close when the route changes (e.g. tapping "Stake Manager").
   useEffect(() => {
@@ -74,7 +76,7 @@ export function MobileNav({ links }: { links: NavLink[] }) {
       {open && (
         <div
           id="mobile-nav"
-          className="animate-reveal absolute left-0 right-0 top-16 border-b border-line bg-white shadow-sm"
+          className="animate-reveal absolute left-0 right-0 top-16 border-b border-line bg-card shadow-sm"
         >
           <nav className="mx-auto flex max-w-6xl flex-col gap-0.5 px-4 py-3">
             <NavLinks
@@ -83,7 +85,7 @@ export function MobileNav({ links }: { links: NavLink[] }) {
               onNavigate={() => setOpen(false)}
             />
 
-            {isConnected && address && (
+            {isConnected && address && isVerified && (
               <div className="mt-2 flex items-center justify-between gap-2 border-t border-line px-3 pt-3">
                 <span className="font-mono text-sm text-ink-soft">
                   {shortenAddress(address)}
@@ -91,6 +93,7 @@ export function MobileNav({ links }: { links: NavLink[] }) {
                 <button
                   type="button"
                   onClick={() => {
+                    reset();
                     disconnect();
                     setOpen(false);
                   }}

@@ -103,7 +103,7 @@ export function StakeManagerClient() {
 
   if (!isConnected || !address) {
     return (
-      <div className="rounded-card border border-line bg-white px-6 py-10 text-center">
+      <div className="rounded-card border border-line bg-card px-6 py-10 text-center">
         <h2 className="text-lg font-bold text-ink">Connect your wallet</h2>
         <p className="mx-auto mt-2 max-w-md text-sm text-ink-soft">
           Connect a wallet on KUB Chain to view and manage the validator nodes you own.
@@ -178,7 +178,7 @@ export function StakeManagerClient() {
             ))}
           </div>
         ) : nodes.length === 0 ? (
-          <div className="rounded-card border border-line bg-white p-10 text-center text-sm text-ink-soft">
+          <div className="rounded-card border border-line bg-card p-10 text-center text-sm text-ink-soft">
             This wallet doesn&apos;t own any validator nodes yet. Use{" "}
             <span className="font-medium text-ink">Stake new node</span> to create one.
           </div>
@@ -191,7 +191,7 @@ export function StakeManagerClient() {
               return (
                 <div
                   key={id}
-                  className={`overflow-hidden rounded-card border bg-white transition-colors ${
+                  className={`overflow-hidden rounded-card border bg-card transition-colors ${
                     open ? "border-brand/30 shadow-sm" : "border-line"
                   }`}
                 >

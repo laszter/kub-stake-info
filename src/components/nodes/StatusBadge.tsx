@@ -1,7 +1,7 @@
 const styles: Record<string, string> = {
   Active: "bg-brand-light text-brand-dark",
-  Unstaked: "bg-amber-50 text-amber-700",
-  Uninitialized: "bg-gray-100 text-ink-muted",
+  Unstaked: "bg-warning-light text-warning",
+  Uninitialized: "bg-surface text-ink-muted",
 };
 
 export function StatusBadge({ status }: { status: string }) {

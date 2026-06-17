@@ -3,6 +3,7 @@
 import { useAccount, useReadContract, useReadContracts } from "wagmi";
 import { stakingNft, stakeManager } from "@/lib/contract";
 import { kubChain } from "@/lib/chain";
+import { useWalletAuth } from "@/providers/WalletAuthProvider";
 import registry from "@/data/validators.json";
 
 const ZERO = "0x0000000000000000000000000000000000000000";
@@ -51,15 +52,20 @@ interface RawValidator {
 }
 
 export function useMyNodes() {
-  const { address, isConnected, chainId } = useAccount();
+  const { address, isConnected: walletConnected, chainId } = useAccount();
+  const { isVerified } = useWalletAuth();
+  // The UI treats "connected" as connected *and* signature-verified, so the
+  // stake manager stays locked until the user has confirmed the wallet.
+  const isConnected = walletConnected && isVerified;
   const onKub = chainId === kubChain.id;
+  const ready = isVerified && Boolean(address) && onKub;
 
   const idsQuery = useReadContract({
     ...stakingNft,
     functionName: "tokenOfOwnerAll",
     args: address ? [address] : undefined,
     chainId: kubChain.id,
-    query: { enabled: Boolean(address) && onKub, refetchInterval: REFRESH_MS },
+    query: { enabled: ready, refetchInterval: REFRESH_MS },
   });
 
   const ids = (idsQuery.data as bigint[] | undefined) ?? [];
@@ -79,7 +85,7 @@ export function useMyNodes() {
     ...stakeManager,
     functionName: "totalStaked",
     chainId: kubChain.id,
-    query: { enabled: Boolean(address) && onKub, refetchInterval: REFRESH_MS },
+    query: { enabled: ready, refetchInterval: REFRESH_MS },
   });
   const totalStaked = (totalQuery.data as bigint | undefined) ?? 0n;
 

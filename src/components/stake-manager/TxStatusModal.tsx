@@ -70,7 +70,7 @@ export function TxStatusModal({
       <button
         type="button"
         onClick={() => setHidden(false)}
-        className="fixed bottom-4 right-4 z-50 flex items-center gap-2 rounded-full border border-line bg-white px-4 py-2 text-sm font-medium text-ink shadow-lg transition-colors hover:border-brand focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/40"
+        className="fixed bottom-4 right-4 z-50 flex items-center gap-2 rounded-full border border-line bg-card px-4 py-2 text-sm font-medium text-ink shadow-lg transition-colors hover:border-brand focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/40"
       >
         <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-line border-t-brand" aria-hidden />
         Transaction pending… <span className="text-ink-muted">tap to view</span>
