@@ -10,6 +10,7 @@ import { STAKE_MANAGER_V2_ADDRESS } from "@/lib/contract";
 const navLinks: NavLink[] = [
   { label: "Overview", href: "/" },
   { label: "Stake Manager", href: "/stake-manager" },
+  { label: "FAQ", href: "/about" },
   {
     label: "KUB Scan",
     href: `${EXPLORER_URL}/address/${STAKE_MANAGER_V2_ADDRESS}`,

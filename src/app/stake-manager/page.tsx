@@ -1,10 +1,26 @@
 import type { Metadata } from "next";
 import { StakeManagerClient } from "@/components/stake-manager/StakeManagerClient";
 
+const description =
+  "Connect your wallet to manage your own KUB Chain validator nodes — stake, restake, unstake, claim rewards and update settings.";
+
 export const metadata: Metadata = {
   title: "Stake Manager",
-  description:
-    "Connect your wallet to manage your own KUB Chain validator nodes — stake, restake, unstake, claim rewards and update settings.",
+  description,
+  alternates: { canonical: "/stake-manager" },
+  // Wallet-gated tool with no indexable content — keep it out of search results
+  // but let crawlers follow links from it.
+  robots: { index: false, follow: true },
+  openGraph: {
+    title: "Stake Manager · KUB Node Info",
+    description,
+    url: "/stake-manager",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Stake Manager · KUB Node Info",
+    description,
+  },
 };
 
 export default function StakeManagerPage() {

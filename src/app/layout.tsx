@@ -5,6 +5,8 @@ import { ThemeProvider } from "@/providers/ThemeProvider";
 import { Web3Provider } from "@/providers/Web3Provider";
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
+import { SiteJsonLd } from "@/components/seo/SiteJsonLd";
+import { SITE_URL, SITE_NAME, SITE_TAGLINE, SITE_DESCRIPTION } from "@/lib/site";
 
 const roboto = Roboto({
   variable: "--font-roboto",
@@ -12,13 +14,59 @@ const roboto = Roboto({
   weight: ["300", "400", "500", "700"],
 });
 
+const TITLE_DEFAULT = `${SITE_NAME} — ${SITE_TAGLINE}`;
+
 export const metadata: Metadata = {
+  metadataBase: new URL(SITE_URL),
   title: {
-    default: "KUB Node Info",
+    default: TITLE_DEFAULT,
     template: "%s · KUB Node Info",
   },
-  description:
-    "Explore validators and node information on the KUB Chain — stake, delegation, rewards and commission, read live from the StakeManager smart contract.",
+  description: SITE_DESCRIPTION,
+  applicationName: SITE_NAME,
+  keywords: [
+    "KUB Chain",
+    "Bitkub Chain",
+    "validators",
+    "validator explorer",
+    "staking",
+    "delegation",
+    "rewards",
+    "commission",
+    "proof of stake",
+    "StakeManager",
+    "KUB staking",
+    "node info",
+    "chainId 96",
+  ],
+  authors: [{ name: SITE_NAME }],
+  creator: SITE_NAME,
+  alternates: { canonical: "/" },
+  openGraph: {
+    type: "website",
+    siteName: SITE_NAME,
+    title: TITLE_DEFAULT,
+    description: SITE_DESCRIPTION,
+    url: "/",
+    locale: "en_US",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: TITLE_DEFAULT,
+    description: SITE_DESCRIPTION,
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      "max-image-preview": "large",
+      "max-snippet": -1,
+      "max-video-preview": -1,
+    },
+  },
+  formatDetection: { telephone: false, email: false, address: false },
 };
 
 // Drives the browser/OS chrome colour per theme. `themeColor` in `metadata` is
@@ -49,6 +97,7 @@ export default function RootLayout({
         <script dangerouslySetInnerHTML={{ __html: NO_FLASH_THEME }} />
       </head>
       <body className="flex min-h-full flex-col text-ink">
+        <SiteJsonLd />
         <ThemeProvider>
           <Web3Provider>
             <a

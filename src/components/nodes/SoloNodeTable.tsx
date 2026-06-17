@@ -15,11 +15,20 @@ export function SoloNodeTable({ rows }: { rows: ValidatorCardView[] }) {
   return (
     <div className="scrollbar-thin overflow-x-auto rounded-card border border-line bg-card">
       <table className="w-full min-w-[480px] text-sm">
+        <caption className="sr-only">
+          KUB Chain solo validators with their total stake and staking power
+        </caption>
         <thead>
           <tr className="border-b border-line text-left text-xs uppercase tracking-wide text-ink-muted">
-            <th className="px-5 py-3 font-medium">Name</th>
-            <th className="px-5 py-3 text-right font-medium">Total Stake</th>
-            <th className="px-5 py-3 text-right font-medium">Staking Power</th>
+            <th scope="col" className="px-5 py-3 font-medium">
+              Name
+            </th>
+            <th scope="col" className="px-5 py-3 text-right font-medium">
+              Total Stake
+            </th>
+            <th scope="col" className="px-5 py-3 text-right font-medium">
+              Staking Power
+            </th>
           </tr>
         </thead>
         <tbody className="divide-y divide-line">

@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { EXPLORER_URL } from "@/lib/chain";
 import { STAKE_MANAGER_ADDRESS } from "@/lib/contract";
 import { shortenAddress } from "@/lib/format";
@@ -18,7 +19,13 @@ export function Footer() {
           </a>{" "}
           on KUB Chain.
         </p>
-        <p>Unofficial explorer · Not affiliated with KUB Foundation</p>
+        <p className="flex items-center gap-2">
+          <Link href="/about" className="font-medium text-ink-soft hover:text-brand">
+            About &amp; FAQ
+          </Link>
+          <span aria-hidden="true">·</span>
+          <span>Unofficial explorer · Not affiliated with KUB Foundation</span>
+        </p>
       </div>
     </footer>
   );

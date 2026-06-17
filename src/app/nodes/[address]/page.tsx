@@ -12,6 +12,8 @@ import { EXPLORER_URL } from "@/lib/chain";
 import { Avatar } from "@/components/ui/Avatar";
 import { CopyButton } from "@/components/ui/CopyButton";
 import { StatusBadge } from "@/components/nodes/StatusBadge";
+import { DataFreshness } from "@/components/ui/DataFreshness";
+import { NodeJsonLd } from "@/components/seo/NodeJsonLd";
 
 export const revalidate = 60;
 
@@ -24,8 +26,36 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { address } = await params;
   const v = await getValidatorByAddress(address);
-  const title = v?.name ?? (v ? shortenAddress(v.address) : "Node not found");
-  return { title };
+  if (!v) {
+    return { title: "Node not found", robots: { index: false, follow: false } };
+  }
+
+  const name = v.name ?? shortenAddress(v.address);
+  const kind = v.isPool ? "Pool" : "Solo";
+  const description =
+    `${name} is a ${kind.toLowerCase()} ${v.status.toLowerCase()} validator on the KUB Chain. ` +
+    `Total stake ${formatKUBDisplay(v.totalStake)} KUB ` +
+    `(self ${formatKUBDisplay(v.amount)} + delegated ${formatKUBDisplay(v.delegatedAmount)}), ` +
+    `commission ${bpsToPercent(v.commissionRate)}, ` +
+    `staking power ${(v.powerRatio * 100).toFixed(2)}%.`;
+  const canonical = `/nodes/${v.address}`;
+
+  return {
+    title: `${name} — ${kind} Validator`,
+    description,
+    alternates: { canonical },
+    openGraph: {
+      title: `${name} · ${kind} Validator`,
+      description,
+      url: canonical,
+      type: "profile",
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: `${name} — ${kind} Validator`,
+      description,
+    },
+  };
 }
 
 function Tile({
@@ -102,9 +132,12 @@ export default async function NodeDetailPage({
   if (!v) notFound();
 
   const total = v.totalStake;
+  const name = v.name ?? shortenAddress(v.address);
+  const asOf = new Date();
 
   return (
     <div className="mx-auto max-w-4xl space-y-6 px-4 py-6 sm:px-6 sm:py-8">
+      <NodeJsonLd name={name} address={v.address} />
       <Link
         href="/"
         className="inline-flex items-center gap-1.5 text-sm text-ink-soft transition-colors hover:text-brand"
@@ -192,6 +225,8 @@ export default async function NodeDetailPage({
           />
         )}
       </section>
+
+      <DataFreshness time={asOf} />
     </div>
   );
 }

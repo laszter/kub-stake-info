@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useState } from "react";
 
 function initials(name: string | null, address: string): string {
@@ -33,14 +34,14 @@ export function Avatar({
       style={{ width: size, height: size, fontSize: size * 0.36 }}
     >
       {showImg ? (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img
+        <Image
           src={src}
-          alt={name ?? address}
+          alt={name ? `${name} logo` : `Validator ${address}`}
           width={size}
           height={size}
           className="h-full w-full object-cover"
           onError={() => setFailed(true)}
+          unoptimized={src.includes("ipfs")}
         />
       ) : (
         initials(name, address)
