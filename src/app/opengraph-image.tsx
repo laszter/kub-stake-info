@@ -21,25 +21,12 @@ export default function Image() {
         }}
       >
         <div style={{ display: "flex", alignItems: "center", gap: 22 }}>
-          <div
-            style={{
-              display: "flex",
-              width: 64,
-              height: 64,
-              alignItems: "center",
-              justifyContent: "center",
-            }}
-          >
-            <div
-              style={{
-                width: 40,
-                height: 40,
-                background: "#0EB366",
-                borderRadius: 8,
-                transform: "rotate(45deg)",
-              }}
-            />
-          </div>
+          <svg width="60" height="60" viewBox="0 0 32 32" fill="none">
+            <path d="M4 10L16 17L16 29L4 22Z" fill="#0C9A57" />
+            <path d="M28 10L16 17L16 29L28 22Z" fill="#0A7D47" />
+            <path d="M16 3L4 10L16 17Z" fill="#2FD587" />
+            <path d="M16 3L28 10L16 17Z" fill="#0EB366" />
+          </svg>
           <div style={{ fontSize: 34, fontWeight: 700 }}>KUB Node Info</div>
         </div>
 
