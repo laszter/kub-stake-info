@@ -36,6 +36,7 @@ export function StakeForm({
   const tx = useTx();
   const [signer, setSigner] = useState("");
   const [amount, setAmount] = useState("");
+  const [delegation, setDelegation] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const { data: balance } = useBalance({ address: account, chainId: kubChain.id });
 
@@ -50,7 +51,7 @@ export function StakeForm({
   async function runStake() {
     setConfirmOpen(false);
     const ok = await tx.run({
-      ...buildStake(signer as `0x${string}`, false, amount),
+      ...buildStake(signer as `0x${string}`, delegation, amount),
       account,
       chainId: kubChain.id,
     });
@@ -126,6 +127,35 @@ export function StakeForm({
           )}
         </label>
 
+        <div>
+          <span className="text-sm text-ink-soft">
+            Node type
+            <InfoHint label="Pool accepts delegations from others (you set a commission). Solo stakes only your own funds." />
+          </span>
+          <div className="mt-1 flex gap-2">
+            <button
+              type="button"
+              onClick={() => setDelegation(false)}
+              aria-pressed={!delegation}
+              className={`flex-1 rounded-lg border py-2 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/30 ${
+                !delegation ? "border-brand bg-brand-light text-brand-dark" : "border-line text-ink-soft hover:border-brand/40"
+              }`}
+            >
+              Solo
+            </button>
+            <button
+              type="button"
+              onClick={() => setDelegation(true)}
+              aria-pressed={delegation}
+              className={`flex-1 rounded-lg border py-2 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/30 ${
+                delegation ? "border-brand bg-brand-light text-brand-dark" : "border-line text-ink-soft hover:border-brand/40"
+              }`}
+            >
+              Pool (accepts delegation)
+            </button>
+          </div>
+        </div>
+
         <Button
           disabled={!canSubmit}
           onClick={() => setConfirmOpen(true)}
@@ -135,14 +165,18 @@ export function StakeForm({
           Stake node
         </Button>
         <p className="text-center text-xs text-ink-muted">
-          Solo nodes must meet the minimum solo stake.
+          {delegation
+            ? "Pool nodes must meet the minimum pool stake."
+            : "Solo nodes must meet the minimum solo stake."}
         </p>
       </div>
 
       <ConfirmDialog
         open={confirmOpen}
         title="Stake a new node"
-        message={`Stake ${amount} KUB to register a new Solo node with signer ${signer}?`}
+        message={`Stake ${amount} KUB to register a new ${
+          delegation ? "Pool" : "Solo"
+        } node with signer ${signer}?`}
         confirmLabel={`Stake ${amount} KUB`}
         onConfirm={runStake}
         onCancel={() => setConfirmOpen(false)}
