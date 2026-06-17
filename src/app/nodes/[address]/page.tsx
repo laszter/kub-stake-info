@@ -450,9 +450,8 @@ export default async function NodeDetailPage({
         </StatGrid>
       </Section>
 
-      {/* Rewards & accrued — headline figures shown to everyone; the pool's
-          commission-accounting internals collapse behind a disclosure so a
-          delegator isn't handed an owner's audit dump. Zero values stay muted. */}
+      {/* Rewards & accrued — headline figure shown to everyone; for pools the
+          delegator & commission breakdown is shown inline below. Zero values stay muted. */}
       <Section id="rewards-h" title="Rewards &amp; accrued">
         <div className="rounded-card border border-line bg-card p-5 sm:p-6">
           <dl className="grid grid-cols-2 gap-x-6 gap-y-6">
@@ -461,24 +460,10 @@ export default async function NodeDetailPage({
               hint="Validator staking rewards accrued, claimable by the node owner."
               wei={v.reward}
             />
-            <KubStat
-              label="Infra commission earned"
-              hint="Infrastructure fee accrued from rewards."
-              wei={v.infraCommissionAmount}
-            />
           </dl>
           {v.isPool && (
-            <details className="mt-4 border-t border-line pt-4">
-              <summary className="flex cursor-pointer list-none items-center justify-between gap-2 rounded text-sm font-medium text-ink-soft transition-colors hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/30 [&::-webkit-details-marker]:hidden">
-                <span>
-                  Reward breakdown
-                  <span className="ml-1 font-normal text-ink-muted">
-                    · delegator &amp; commission detail
-                  </span>
-                </span>
-                <Chevron className="disclosure-icon h-4 w-4 shrink-0 text-ink-muted transition-transform" />
-              </summary>
-              <dl className="mt-4 grid grid-cols-2 gap-x-6 gap-y-6 sm:grid-cols-3">
+            <div className="mt-4 border-t border-line pt-4">
+              <dl className="grid grid-cols-2 gap-x-6 gap-y-6 sm:grid-cols-3">
                 <KubStat
                   label="Delegators reward"
                   hint="Rewards accrued for this pool's delegators, distributed by the owner."
@@ -495,7 +480,7 @@ export default async function NodeDetailPage({
                   wei={v.delegatorCommissionAmount}
                 />
               </dl>
-            </details>
+            </div>
           )}
         </div>
       </Section>

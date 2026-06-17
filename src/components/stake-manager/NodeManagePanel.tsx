@@ -31,7 +31,6 @@ import {
   buildWithdrawDelegatorsReward,
   buildUpdateCommission,
   buildUpdateMinDelegated,
-  buildToggleDelegation,
   buildActivate,
 } from "@/lib/nodeActions";
 
@@ -339,65 +338,53 @@ export function NodeManagePanel({
           )}
         </Section>
 
-        <Section title="Settings">
-          {node.isPool && (
-            <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-              <span className="w-36 text-sm text-ink-soft">
-                Commission rate
-                <InfoHint label="The % of delegators' staking rewards this pool keeps as a fee." />
-              </span>
-              <div className="relative flex-1">
-                <input
-                  inputMode="decimal"
-                  value={commission}
-                  onChange={(e) => setCommission(e.target.value)}
-                  placeholder={bpsToPercent(node.commissionRate)}
-                  className={`${inputClass} pl-3 pr-8`}
-                />
-                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-ink-muted">%</span>
+        {(node.isPool || node.statusCode !== 1) && (
+          <Section title="Settings">
+            {node.isPool && (
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+                <span className="w-36 text-sm text-ink-soft">
+                  Commission rate
+                  <InfoHint label="The % of delegators' staking rewards this pool keeps as a fee." />
+                </span>
+                <div className="relative flex-1">
+                  <input
+                    inputMode="decimal"
+                    value={commission}
+                    onChange={(e) => setCommission(e.target.value)}
+                    placeholder={bpsToPercent(node.commissionRate)}
+                    className={`${inputClass} pl-3 pr-8`}
+                  />
+                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-ink-muted">%</span>
+                </div>
+                <Button
+                  variant="secondary"
+                  disabled={busy || !(Number(commission) >= 0 && commission !== "")}
+                  onClick={() => exec(buildUpdateCommission(node.id, Number(commission)))}
+                >
+                  Update
+                </Button>
               </div>
-              <Button
-                variant="secondary"
-                disabled={busy || !(Number(commission) >= 0 && commission !== "")}
-                onClick={() => exec(buildUpdateCommission(node.id, Number(commission)))}
-              >
-                Update
-              </Button>
-            </div>
-          )}
-          {node.isPool && (
-            <AmountAction
-              label="Min delegated"
-              labelHint="The smallest delegation amount this pool will accept from a delegator."
-              unit="KUB"
-              cta="Update"
-              disabled={busy}
-              onSubmit={(v) => exec(buildUpdateMinDelegated(node.id, v))}
-            />
-          )}
-          <SimpleAction
-            label={node.isPool ? "Disable delegation (→ Solo)" : "Enable delegation (→ Pool)"}
-            cta={node.isPool ? "Disable" : "Enable"}
-            disabled={busy}
-            onClick={() =>
-              confirmExec(buildToggleDelegation(node.id, !node.isPool), {
-                title: node.isPool ? "Disable delegation" : "Enable delegation",
-                message: node.isPool
-                  ? "Turn this Pool node into a Solo node? It will stop accepting new delegations."
-                  : "Turn this Solo node into a Pool node? It will start accepting delegations.",
-                confirmLabel: node.isPool ? "Disable" : "Enable",
-              })
-            }
-          />
-          {node.statusCode !== 1 && (
-            <SimpleAction
-              label="Activate node"
-              cta="Activate"
-              disabled={busy}
-              onClick={() => exec(buildActivate(node.id))}
-            />
-          )}
-        </Section>
+            )}
+            {node.isPool && (
+              <AmountAction
+                label="Min delegated"
+                labelHint="The smallest delegation amount this pool will accept from a delegator."
+                unit="KUB"
+                cta="Update"
+                disabled={busy}
+                onSubmit={(v) => exec(buildUpdateMinDelegated(node.id, v))}
+              />
+            )}
+            {node.statusCode !== 1 && (
+              <SimpleAction
+                label="Activate node"
+                cta="Activate"
+                disabled={busy}
+                onClick={() => exec(buildActivate(node.id))}
+              />
+            )}
+          </Section>
+        )}
       </div>
 
       <ConfirmDialog

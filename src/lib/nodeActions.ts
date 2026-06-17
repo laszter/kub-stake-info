@@ -66,12 +66,6 @@ export const buildUpdateMinDelegated = (id: Id, amountKUB: string) => ({
   args: [id, parseEther(amountKUB)] as const,
 });
 
-export const buildToggleDelegation = (id: Id, on: boolean) => ({
-  ...base,
-  functionName: "updateValidatorDelegation",
-  args: [id, on] as const,
-});
-
 export const buildActivate = (id: Id) => ({
   ...base,
   functionName: "activate",
