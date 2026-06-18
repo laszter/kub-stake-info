@@ -1,0 +1,29 @@
+{
+  "pkg": "kub-stake-info",
+  "globalName": "KubStakeUI",
+  "projectId": "b737a910-ff36-4b5d-b50e-baa8345c17ac",
+  "shape": "package",
+  "srcDir": "src/components/ui",
+  "tsconfig": ".design-sync/tsconfig.build.json",
+  "provider": { "component": "ThemeProvider" },
+  "cssEntry": ".design-sync/.cache/compiled.css",
+  "buildCmd": "node .design-sync/compile-css.mjs",
+  "readmeHeader": ".design-sync/conventions.md",
+  "componentSrcMap": {
+    "Avatar": "src/components/ui/Avatar.tsx",
+    "Button": "src/components/ui/Button.tsx",
+    "Chevron": "src/components/ui/Chevron.tsx",
+    "ConfirmDialog": "src/components/ui/ConfirmDialog.tsx",
+    "CopyButton": "src/components/ui/CopyButton.tsx",
+    "DataFreshness": "src/components/ui/DataFreshness.tsx",
+    "InfoHint": "src/components/ui/InfoHint.tsx",
+    "Logo": "src/components/ui/Logo.tsx",
+    "Modal": "src/components/ui/Modal.tsx",
+    "Pagination": "src/components/ui/Pagination.tsx",
+    "ThemeToggle": "src/components/ui/ThemeToggle.tsx"
+  },
+  "overrides": {
+    "Modal": { "cardMode": "single", "viewport": "560x440" },
+    "ConfirmDialog": { "cardMode": "single", "viewport": "480x420" }
+  }
+}
