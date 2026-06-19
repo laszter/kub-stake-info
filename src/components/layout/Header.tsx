@@ -32,7 +32,7 @@ export function Header() {
           </span>
         </Link>
 
-        <nav className="hidden items-center gap-7 md:flex">
+        <nav className="hidden md:block">
           <NavLinks variant="desktop" links={navLinks} />
         </nav>
 

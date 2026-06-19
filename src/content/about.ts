@@ -41,7 +41,7 @@ export const FAQ_ITEMS: Faq[] = [
   {
     question: "How are validator rewards distributed?",
     answer:
-      "Validators accrue KUB rewards for the blocks they help produce. The validator keeps its commission (plus any infrastructure commission) and the remainder is set aside for delegators in proportion to their delegated stake. Each validator's accrued reward, delegators' reward and commission amounts are read directly from the contract.",
+      "Validators accrue KUB rewards for the blocks they help produce. The validator keeps its commission and the remainder is set aside for delegators in proportion to their delegated stake. Each validator's accrued reward, delegators' reward and commission amounts are read directly from the contract.",
   },
   {
     question: "Can I stake or manage my own validator nodes here?",

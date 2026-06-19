@@ -95,14 +95,12 @@ function RowCard({ children }: { children: React.ReactNode }) {
 /** Spec grid: label/value tiles laid out 2-up (mobile) → up to 3-up (desktop).
     `cols` matches the desktop track count to the tile count so a 2-tile section
     doesn't leave a dangling empty third column. */
-function StatGrid({ cols = 3, children }: { cols?: 2 | 3; children: React.ReactNode }) {
+function StatGrid({ cols = 3, children }: { cols?: 1 | 2 | 3; children: React.ReactNode }) {
+  const track =
+    cols === 1 ? "grid-cols-1" : cols === 2 ? "grid-cols-2 sm:grid-cols-2" : "grid-cols-2 sm:grid-cols-3";
   return (
     <div className="rounded-card border border-line bg-card p-5 sm:p-6">
-      <dl
-        className={`grid grid-cols-2 gap-x-6 gap-y-6 ${
-          cols === 2 ? "sm:grid-cols-2" : "sm:grid-cols-3"
-        }`}
-      >
+      <dl className={`grid gap-x-6 gap-y-6 ${track}`}>
         {children}
       </dl>
     </div>
@@ -429,7 +427,7 @@ export default async function NodeDetailPage({
 
       {/* Fees & terms */}
       <Section id="fees-h" title="Fees &amp; terms">
-        <StatGrid cols={v.isPool ? 3 : 2}>
+        <StatGrid cols={v.isPool ? 2 : 1}>
           {v.isPool && (
             <Stat
               label="Service fee"
@@ -437,11 +435,6 @@ export default async function NodeDetailPage({
               value={bpsToPercent(v.commissionRate)}
             />
           )}
-          <Stat
-            label="Infra commission rate"
-            hint="Protocol infrastructure fee taken from staking rewards."
-            value={bpsToPercent(v.infraCommissionRate)}
-          />
           <KubStat
             label="Minimum stake"
             hint="The smallest stake this node accepts."
