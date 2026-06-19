@@ -1,6 +1,7 @@
 import {
   STAKE_MANAGER_ADDRESS,
   STAKE_MANAGER_V2_ADDRESS,
+  STAKING_NFT_ADDRESS,
 } from "@/lib/contract";
 
 export type Faq = { question: string; answer: string };
@@ -15,7 +16,7 @@ export const FAQ_ITEMS: Faq[] = [
   {
     question: "What is KUB Node Info?",
     answer:
-      "KUB Node Info is an unofficial, read-only explorer for validators and nodes on the KUB Chain (Bitkub Chain, chainId 96). It reads live data — stake, delegation, rewards and commission — directly from the StakeManager smart contract and presents it for browsing. It is not affiliated with the KUB Foundation.",
+      "KUB Node Info is an unofficial explorer and stake manager for validators and nodes on the KUB Chain (Bitkub Chain, chainId 96). Browsing is read-only and needs no wallet — it shows live stake, delegation, rewards and commission read directly from the StakeManager smart contract. Connect a wallet and the Stake Manager also lets you manage the nodes you own: stake, restake, unstake, claim rewards and update settings. It is not affiliated with the KUB Foundation.",
   },
   {
     question: "What is a validator on the KUB Chain?",
@@ -40,17 +41,22 @@ export const FAQ_ITEMS: Faq[] = [
   {
     question: "How are validator rewards distributed?",
     answer:
-      "Validators accrue KUB rewards for the blocks they help produce. The validator keeps its commission (plus any infrastructure commission) and the remainder is distributed to delegators in proportion to their delegated stake. Each validator's accrued reward, delegators' reward and commission amounts are read directly from the contract.",
+      "Validators accrue KUB rewards for the blocks they help produce. The validator keeps its commission (plus any infrastructure commission) and the remainder is set aside for delegators in proportion to their delegated stake. Each validator's accrued reward, delegators' reward and commission amounts are read directly from the contract.",
+  },
+  {
+    question: "Can I stake or manage my own validator nodes here?",
+    answer:
+      "Yes. Open the Stake Manager and connect a wallet on the KUB Chain to see and manage the nodes that wallet owns. You can register a new Pool or Solo node, add stake (restake), unstake part or all of a node, claim your validator and commission rewards, withdraw delegators' rewards, update a pool's commission rate and minimum delegation, and activate a node. A “Claim all” action sweeps every claimable reward across your nodes in one go. Nothing moves without your wallet's confirmation — until you sign, the app stays read-only.",
   },
   {
     question: "How often is the data updated?",
     answer:
-      "The overview and node-detail pages are rendered on the server and re-read the chain at most once per minute (60-second incremental regeneration). The “Data as of” timestamp on each page shows when the data was last refreshed.",
+      "The Overview and node-detail pages are rendered on the server and re-read the chain at most once per minute (60-second incremental regeneration); each page's “Data as of” timestamp shows when that happened. While a wallet is connected, the Stake Manager refreshes your nodes and balances live, about every 20 seconds.",
   },
   {
     question: "Which smart contracts does this read from?",
     answer:
-      `Read data comes from the StakeManagerStorageV2 contract at ${STAKE_MANAGER_ADDRESS}. Wallet write actions in the Stake Manager (stake, restake, unstake, claim and settings updates) go to the StakeManagerV2 contract at ${STAKE_MANAGER_V2_ADDRESS}. Both are on the KUB Chain (chainId 96).`,
+      `Validator data is read from the StakeManagerStorageV2 contract at ${STAKE_MANAGER_ADDRESS}. To find the nodes a connected wallet owns, the Stake Manager reads the StakingNFT contract at ${STAKING_NFT_ADDRESS} — each node is an NFT whose token ID is its validator ID. Wallet write actions (stake, restake, unstake, claim and settings updates) go to the StakeManagerV2 contract at ${STAKE_MANAGER_V2_ADDRESS}. All are on the KUB Chain (chainId 96).`,
   },
   {
     question: "Is this the official KUB staking site?",
@@ -97,5 +103,25 @@ export const GLOSSARY: Term[] = [
     term: "Commission Rate",
     definition:
       "The percentage of rewards a validator keeps before paying delegators, stored on-chain in basis points (10,000 = 100%).",
+  },
+  {
+    term: "Restake",
+    definition:
+      "Adding more KUB to a node you already own, increasing its stake.",
+  },
+  {
+    term: "Min Delegated",
+    definition:
+      "The smallest delegation amount a Pool Node will accept from a delegator.",
+  },
+  {
+    term: "Delegators Reward",
+    definition:
+      "Rewards set aside for a pool's delegators; the operator withdraws them so they can be distributed.",
+  },
+  {
+    term: "Node NFT",
+    definition:
+      "An NFT that represents ownership of a validator node; its token ID is the node's validator ID.",
   },
 ];

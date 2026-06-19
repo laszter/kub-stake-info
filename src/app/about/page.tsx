@@ -3,7 +3,7 @@ import { FAQ_ITEMS, GLOSSARY } from "@/content/about";
 import { AboutJsonLd } from "@/components/seo/AboutJsonLd";
 
 const description =
-  "What KUB Node Info is, how validators, pool/solo nodes, staking power, commission and rewards work on the KUB Chain, which contracts the data comes from, and a staking glossary.";
+  "What KUB Node Info is, how validators, pool/solo nodes, staking power, commission and rewards work on the KUB Chain, how to stake and manage your own nodes, which contracts the data comes from, and a staking glossary.";
 
 export const metadata: Metadata = {
   title: "About & FAQ",
@@ -27,10 +27,12 @@ export default function AboutPage() {
           About &amp; FAQ
         </h1>
         <p className="text-sm leading-relaxed text-ink-muted">
-          KUB Node Info is an unofficial, read-only explorer for validators and
-          nodes on the KUB Chain (Bitkub Chain, chainId 96). It reads live stake,
-          delegation, rewards and commission directly from the StakeManager
-          smart contract. It is not affiliated with the KUB Foundation.
+          KUB Node Info is an unofficial explorer and stake manager for
+          validators and nodes on the KUB Chain (Bitkub Chain, chainId 96).
+          Browsing is read-only and needs no wallet; connect one and you can also
+          manage the nodes you own — staking, claiming rewards and updating
+          settings — read live from and written to the StakeManager smart
+          contracts. It is not affiliated with the KUB Foundation.
         </p>
       </header>
 
