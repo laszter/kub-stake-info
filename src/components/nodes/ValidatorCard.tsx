@@ -36,7 +36,7 @@ export function ValidatorCard({ v }: { v: ValidatorCardView }) {
         <Row label="Service Fee" value={v.serviceFee} />
       </div>
 
-      <span className="mt-5 inline-flex items-center justify-center rounded-full border border-brand py-2 text-sm font-medium text-brand transition-colors group-hover:bg-brand group-hover:text-on-brand">
+      <span className="mt-5 inline-flex items-center justify-center rounded-full border border-brand py-2 text-sm font-medium text-brand transition-colors group-hover:bg-btn-primary group-hover:text-on-btn-primary">
         View Details
       </span>
     </Link>

@@ -15,6 +15,17 @@
      darker hover shade) and works in both themes since the brand stays bright. */
   --color-on-brand: #06160d;
 
+  /* Primary button (Connect Wallet, CTAs, the `primary` Button variant): the
+     bright brand green with a WHITE label, by product preference. Heads-up:
+     white on #0eb366 is only ~2.7:1, i.e. below WCAG AA for text — a deliberate
+     look-over-contrast call; revisit if accessibility becomes a hard
+     requirement. Kept as its own token (not `--color-brand`) so the green stays
+     free for decorative uses (chart line, bars, status dots, nav underline) and
+     so dark mode can keep its higher-contrast dark-on-green label (see `.dark`). */
+  --color-btn-primary: #0eb366;
+  --color-btn-primary-hover: #0c9a57;
+  --color-on-btn-primary: #ffffff;
+
   /* Surfaces & ink.
      bg      = page background
      card    = raised panels/cards/modals (was the hard-coded `bg-white`)
@@ -70,6 +81,13 @@
   --color-brand: #16c47e;
   --color-brand-dark: #19b878;
   --color-brand-light: #0f2a1f;
+
+  /* On dark surfaces the bright brand fill + dark-on-green text already clears
+     AA (6.8:1) and looks crisp, so the primary button keeps that treatment here
+     rather than the white-on-green used in light mode. */
+  --color-btn-primary: #16c47e;
+  --color-btn-primary-hover: #19b878;
+  --color-on-btn-primary: #06160d;
 
   --color-danger: #f06560;
   --color-danger-dark: #e2554f;

@@ -48,7 +48,7 @@ export function Pagination({
             aria-current={it === page}
             className={`${btn} ${
               it === page
-                ? "bg-brand text-on-brand"
+                ? "bg-btn-primary text-on-btn-primary"
                 : "border border-line text-ink-soft hover:border-brand hover:text-brand"
             }`}
           >

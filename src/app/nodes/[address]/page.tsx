@@ -1,7 +1,10 @@
+import { Suspense } from "react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { getValidatorByAddress } from "@/lib/staking";
+import { getBlocksValidated, getBlocksProducedSeries } from "@/lib/explorer";
+import { BlocksProducedChart } from "@/components/nodes/BlocksProducedChart";
 import {
   formatKUBDisplay,
   formatKUBExact,
@@ -152,6 +155,71 @@ function KubStat({ label, hint, wei }: { label: string; hint?: string; wei: bigi
       title={formatKUBExact(wei)}
       value={formatKUBDisplay(wei)}
       unit="KUB"
+    />
+  );
+}
+
+/** Validated-block count, fetched from KUB Scan in its own async component so
+    the on-chain figures above never wait on the explorer. Streams in behind a
+    Suspense boundary; shows "—" if the count can't be loaded. */
+async function BlocksValidatedStat({ address }: { address: string }) {
+  const count = await getBlocksValidated(address);
+  return (
+    <Stat
+      label="Blocks validated"
+      hint="Total blocks this node has produced (signed) on the KUB Chain, per KUB Scan."
+      muted={count === null || count === 0}
+      title={
+        count === null ? "Couldn't load from KUB Scan — try again shortly." : undefined
+      }
+      value={count === null ? "—" : count.toLocaleString("en-US")}
+    />
+  );
+}
+
+/** Pulsing placeholder shown while the validated-block count streams in. */
+function BlocksValidatedSkeleton() {
+  return (
+    <div>
+      <dt className="text-xs text-ink-soft">Blocks validated</dt>
+      <dd
+        className="mt-1.5 h-6 w-28 animate-pulse rounded bg-line sm:h-7"
+        aria-hidden
+      />
+    </div>
+  );
+}
+
+/** Hourly block-production line chart for the last 24h, crawled from KUB Scan in
+    its own async component so it streams in behind a Suspense boundary without
+    holding up the on-chain figures. Falls back to a quiet note when the explorer
+    can't be reached or the node produced nothing in the window. */
+async function BlocksProducedChartSection({ address }: { address: string }) {
+  const series = await getBlocksProducedSeries(address);
+  if (!series) {
+    return (
+      <p className="mt-3 text-sm text-ink-muted">
+        Couldn&apos;t load production history from KUB Scan — try again shortly.
+      </p>
+    );
+  }
+  const total = series.counts.reduce((a, b) => a + b, 0);
+  if (total === 0) {
+    return (
+      <p className="mt-3 text-sm text-ink-muted">
+        No blocks produced in the last 24 hours.
+      </p>
+    );
+  }
+  return <BlocksProducedChart {...series} />;
+}
+
+/** Pulsing placeholder sized to the chart while it streams in. */
+function BlocksProducedChartSkeleton() {
+  return (
+    <div
+      className="mt-3 h-44 w-full animate-pulse rounded-lg bg-line"
+      aria-hidden
     />
   );
 }
@@ -323,7 +391,7 @@ export default async function NodeDetailPage({
       };
 
   const ctaClass =
-    "inline-flex min-h-11 w-full items-center justify-center gap-1.5 rounded-full bg-brand px-5 text-sm font-medium text-on-brand transition-colors hover:bg-brand-dark focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/40 focus-visible:ring-offset-1 sm:w-auto";
+    "inline-flex min-h-11 w-full items-center justify-center gap-1.5 rounded-full bg-btn-primary px-5 text-sm font-medium text-on-btn-primary transition-colors hover:bg-btn-primary-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/40 focus-visible:ring-offset-1 sm:w-auto";
 
   return (
     <div className="mx-auto max-w-4xl space-y-6 px-4 py-6 sm:px-6 sm:py-8">
@@ -421,6 +489,29 @@ export default async function NodeDetailPage({
               <PowerBar ratio={v.powerRatio} />
               <p className="text-xs text-ink-muted">of total network stake</p>
             </div>
+          </div>
+        </div>
+      </Section>
+
+      {/* Block production — validated-block count + 24h hourly chart, both
+          streamed from the explorer so they never block the on-chain figures
+          above. */}
+      <Section id="blocks-h" title="Block production">
+        <div className="space-y-4">
+          <StatGrid cols={1}>
+            <Suspense fallback={<BlocksValidatedSkeleton />}>
+              <BlocksValidatedStat address={v.address} />
+            </Suspense>
+          </StatGrid>
+          <div className="rounded-card border border-line bg-card p-5 sm:p-6">
+            <h3 className="flex items-center text-sm font-medium text-ink-soft">
+              Blocks produced per hour
+              <span className="ml-1 text-ink-muted">· last 24h</span>
+              <InfoHint label="Blocks this node produced (signed) in each of the last 24 hours, per KUB Scan. Dips indicate missed slots or downtime." />
+            </h3>
+            <Suspense fallback={<BlocksProducedChartSkeleton />}>
+              <BlocksProducedChartSection address={v.address} />
+            </Suspense>
           </div>
         </div>
       </Section>
