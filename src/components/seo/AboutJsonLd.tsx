@@ -10,7 +10,10 @@ export function AboutJsonLd() {
     mainEntity: FAQ_ITEMS.map((f) => ({
       "@type": "Question",
       name: f.question,
-      acceptedAnswer: { "@type": "Answer", text: f.answer },
+      acceptedAnswer: {
+        "@type": "Answer",
+        text: f.link ? `${f.answer} ${f.link.label}: ${f.link.href}` : f.answer,
+      },
     })),
   };
 

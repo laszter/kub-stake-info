@@ -20,6 +20,10 @@ export const SITE_DESCRIPTION =
 export const KUB_CHAIN_ID = 96;
 export const KUB_CHAIN_NAME = "KUB Chain";
 
+/** Official KUB Chain guide for operating a validator node (run-a-kub-node). */
+export const KUB_NODE_DOCS_URL =
+  "https://docs.kubchain.com/run-a-kub-node/overview";
+
 /** Build an absolute URL from a site-relative path. */
 export function absoluteUrl(path = "/"): string {
   return `${SITE_URL}${path.startsWith("/") ? path : `/${path}`}`;

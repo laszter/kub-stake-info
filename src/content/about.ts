@@ -3,8 +3,14 @@ import {
   STAKE_MANAGER_V2_ADDRESS,
   STAKING_NFT_ADDRESS,
 } from "@/lib/contract";
+import { KUB_NODE_DOCS_URL } from "@/lib/site";
 
-export type Faq = { question: string; answer: string };
+export type Faq = {
+  question: string;
+  answer: string;
+  /** Optional outbound reference rendered as a link after the answer. */
+  link?: { href: string; label: string };
+};
 export type Term = { term: string; definition: string };
 
 /**
@@ -47,6 +53,15 @@ export const FAQ_ITEMS: Faq[] = [
     question: "Can I stake or manage my own validator nodes here?",
     answer:
       "Yes. Open the Stake Manager and connect a wallet on the KUB Chain to see and manage the nodes that wallet owns. You can register a new Pool or Solo node, add stake (restake), unstake part or all of a node, claim your validator and commission rewards, withdraw delegators' rewards, update a pool's commission rate and minimum delegation, and activate a node. A “Claim all” action sweeps every claimable reward across your nodes in one go. Nothing moves without your wallet's confirmation — until you sign, the app stays read-only.",
+  },
+  {
+    question: "How do I run my own validator node on the KUB Chain?",
+    answer:
+      "Becoming a validator means running your own node infrastructure with high uptime and meeting the network's minimum stake before you register it here. This explorer's Stake Manager handles the on-chain part — registering a Pool or Solo node and managing its stake, rewards and settings — but it does not set up the server software for you. If you are interested in becoming a node validator, study the official KUB Chain documentation for the hardware, staking and setup requirements.",
+    link: {
+      href: KUB_NODE_DOCS_URL,
+      label: "Run a KUB node — official KUB Chain docs",
+    },
   },
   {
     question: "How often is the data updated?",

@@ -7,6 +7,7 @@ import { kubChain } from "@/lib/chain";
 import { useTx } from "@/hooks/useTx";
 import { buildStake } from "@/lib/nodeActions";
 import { formatKUBDisplay } from "@/lib/format";
+import { KUB_NODE_DOCS_URL } from "@/lib/site";
 import { Button } from "@/components/ui/Button";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { InfoHint } from "@/components/ui/InfoHint";
@@ -169,6 +170,19 @@ export function StakeForm({
             ? "Pool nodes must meet the minimum pool stake."
             : "Solo nodes must meet the minimum solo stake."}
         </p>
+
+        <div className="rounded-lg border border-line bg-surface p-3 text-xs leading-relaxed text-ink-muted">
+          New to becoming a node validator? Running a node needs your own server
+          infrastructure with high uptime and a minimum stake.{" "}
+          <a
+            href={KUB_NODE_DOCS_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="font-medium text-brand hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/30"
+          >
+            Learn how to run a KUB node →
+          </a>
+        </div>
       </div>
 
       <ConfirmDialog

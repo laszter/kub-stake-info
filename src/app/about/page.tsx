@@ -52,6 +52,19 @@ export default function AboutPage() {
               <dt className="text-base font-semibold text-ink">{f.question}</dt>
               <dd className="mt-2 text-sm leading-relaxed text-ink-muted">
                 {f.answer}
+                {f.link && (
+                  <>
+                    {" "}
+                    <a
+                      href={f.link.href}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="font-medium text-brand hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/30"
+                    >
+                      {f.link.label} →
+                    </a>
+                  </>
+                )}
               </dd>
             </div>
           ))}
