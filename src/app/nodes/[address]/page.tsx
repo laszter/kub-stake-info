@@ -540,8 +540,8 @@ export default async function NodeDetailPage({
         <div className="rounded-card border border-line bg-card p-5 sm:p-6">
           <dl className="grid grid-cols-2 gap-x-6 gap-y-6">
             <KubStat
-              label="Reward"
-              hint="Validator staking rewards accrued, claimable by the node owner."
+              label="Unclaimed reward"
+              hint="Validator staking rewards accrued so far and claimable now by the node owner. This is the current outstanding balance — it resets to zero when claimed, so it isn't the node's lifetime total."
               wei={v.reward}
             />
           </dl>

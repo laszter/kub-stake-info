@@ -1,11 +1,9 @@
 import type { Metadata } from "next";
 import { getStakingData } from "@/lib/staking";
 import { toCardView } from "@/lib/view";
-import { formatKUB } from "@/lib/format";
-import { Hero } from "@/components/layout/Hero";
-import { StatsBar } from "@/components/stats/StatsBar";
+import { formatKUB, shortenAddress } from "@/lib/format";
+import { Hero, type StakeDistribution } from "@/components/layout/Hero";
 import { ValidatorExplorer } from "@/components/nodes/ValidatorExplorer";
-import { DataFreshness } from "@/components/ui/DataFreshness";
 import { HomeJsonLd } from "@/components/seo/HomeJsonLd";
 
 // Re-read the chain (ISR) at most once per minute.
@@ -33,16 +31,30 @@ export default async function HomePage() {
   );
   const asOf = new Date();
 
+  // Stake concentration: top validators by share, with the remainder folded
+  // into "others" — surfaces how decentralised the network actually is.
+  const TOP_N = 5;
+  const ranked = [...liveValidators].sort((a, b) => b.powerRatio - a.powerRatio);
+  const top = ranked.slice(0, TOP_N).map((v) => ({
+    label: v.name ?? shortenAddress(v.address),
+    share: v.powerRatio,
+  }));
+  const topShare = top.reduce((sum, t) => sum + t.share, 0);
+  const distribution: StakeDistribution = {
+    top,
+    topShare,
+    othersShare: Math.max(0, 1 - topShare),
+    othersCount: Math.max(0, ranked.length - top.length),
+  };
+
   return (
-    <div className="mx-auto max-w-6xl space-y-6 px-4 py-6 sm:px-6 sm:py-8">
+    <div className="mx-auto max-w-6xl space-y-8 px-4 py-6 sm:px-6 sm:py-10">
       <HomeJsonLd
         validators={liveValidators}
         stats={stats}
         updatedAt={asOf}
       />
-      <Hero />
-      <StatsBar stats={stats} />
-      <DataFreshness time={asOf} className="text-center" />
+      <Hero stats={stats} asOf={asOf} distribution={distribution} />
       <ValidatorExplorer
         pools={pools.map(toCardView)}
         solos={solos.map(toCardView)}
