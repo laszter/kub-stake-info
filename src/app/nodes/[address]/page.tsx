@@ -550,17 +550,17 @@ export default async function NodeDetailPage({
               <dl className="grid grid-cols-2 gap-x-6 gap-y-6 sm:grid-cols-3">
                 <KubStat
                   label="Delegators reward"
-                  hint="Rewards accrued for this pool's delegators, distributed by the owner."
+                  hint="Rewards set aside for this pool's delegators (their stake's share, after the validator's commission), distributed to them in proportion to their delegated stake."
                   wei={v.delegatorsReward}
                 />
                 <KubStat
                   label="Validator commission"
-                  hint="Commission accrued to the validator from delegators' rewards."
+                  hint="Commission charged on the validator's own self-stake reward. It is paid back to the node owner, so it effectively nets out against their own reward."
                   wei={v.validatorCommissionAmount}
                 />
                 <KubStat
                   label="Delegator commission"
-                  hint="Commission share attributed to delegators."
+                  hint="The pool's commission fee taken from the delegators' rewards — paid to the node owner."
                   wei={v.delegatorCommissionAmount}
                 />
               </dl>

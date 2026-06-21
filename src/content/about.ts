@@ -47,12 +47,18 @@ export const FAQ_ITEMS: Faq[] = [
   {
     question: "How are validator rewards distributed?",
     answer:
-      "Validators accrue KUB rewards for the blocks they help produce. The validator keeps its commission and the remainder is set aside for delegators in proportion to their delegated stake. Each validator's accrued reward, delegators' reward and commission amounts are read directly from the contract.",
+      "When a pool earns a block reward it is first split between the validator's own self-stake and its delegators, in proportion to how much each has staked. An infrastructure fee set by the network may be deducted first (0% by default), then the validator's commission is taken from the delegators' portion. What remains of the delegators' portion is shared among them by stake; the rest is the validator's own reward. Each validator's accrued reward, delegators' reward and commission amounts are read directly from the contract.",
+  },
+  {
+    question:
+      "Why does a pool show both a “validator commission” and a “delegator commission”?",
+    answer:
+      "Because the commission rate is applied to both parts of the split reward, the contract records two amounts: “validator commission” is the cut taken from the validator's own self-stake share, and “delegator commission” is the cut taken from the delegators' share. Both belong to and are paid to the node owner (claimed together as commission rewards). The validator-commission part is simply carved out of the owner's own reward and handed straight back, so it nets out — the figure that genuinely adds to the owner's earnings is the delegator commission, the fee charged on the delegators' rewards.",
   },
   {
     question: "Can I stake or manage my own validator nodes here?",
     answer:
-      "Yes. Open the Stake Manager and connect a wallet on the KUB Chain to see and manage the nodes that wallet owns. You can register a new Pool or Solo node, add stake (restake), unstake part or all of a node, claim your validator and commission rewards, withdraw delegators' rewards, update a pool's commission rate and minimum delegation, and activate a node. A “Claim all” action sweeps every claimable reward across your nodes in one go. Nothing moves without your wallet's confirmation — until you sign, the app stays read-only.",
+      "Yes. Open the Stake Manager and connect a wallet on the KUB Chain to see and manage the nodes that wallet owns. You can register a new Pool or Solo node, add stake (restake), unstake part or all of a node, claim your validator and commission rewards, update a pool's commission rate and minimum delegation, and activate a node. A “Claim all” action sweeps every claimable reward across your nodes in one go. Nothing moves without your wallet's confirmation — until you sign, the app stays read-only.",
   },
   {
     question: "How do I run my own validator node on the KUB Chain?",
