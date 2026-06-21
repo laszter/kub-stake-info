@@ -48,12 +48,6 @@ export const buildClaimCommission = (id: Id) => ({
   args: [id] as const,
 });
 
-export const buildWithdrawDelegatorsReward = (id: Id) => ({
-  ...base,
-  functionName: "withdrawDelegatorsReward",
-  args: [id] as const,
-});
-
 export const buildUpdateCommission = (id: Id, percent: number) => ({
   ...base,
   functionName: "updateCommissionRate",

@@ -4,11 +4,7 @@ import { useEffect, useState } from "react";
 import { useMyNodes } from "@/hooks/useMyNodes";
 import { useBulkClaim, type BulkItem } from "@/hooks/useBulkClaim";
 import { kubChain } from "@/lib/chain";
-import {
-  buildClaimRewards,
-  buildClaimCommission,
-  buildWithdrawDelegatorsReward,
-} from "@/lib/nodeActions";
+import { buildClaimRewards, buildClaimCommission } from "@/lib/nodeActions";
 import { formatKUBDisplay, bpsToPercent, shortenAddress } from "@/lib/format";
 import { ConnectButton } from "@/components/wallet/ConnectButton";
 import { NetworkGuard } from "@/components/wallet/NetworkGuard";
@@ -61,12 +57,10 @@ export function StakeManagerClient() {
       items.push({ label: `${name} — validator rewards`, build: buildClaimRewards(node.id) });
     if (node.isPool && node.validatorCommissionAmount > 0n)
       items.push({ label: `${name} — commission`, build: buildClaimCommission(node.id) });
-    if (node.isPool && node.delegatorsReward > 0n)
-      items.push({ label: `${name} — delegators reward`, build: buildWithdrawDelegatorsReward(node.id) });
     return items;
   });
   const totalClaimable = nodes.reduce(
-    (sum, n) => sum + n.reward + (n.isPool ? n.validatorCommissionAmount + n.delegatorsReward : 0n),
+    (sum, n) => sum + n.reward + (n.isPool ? n.validatorCommissionAmount : 0n),
     0n,
   );
 

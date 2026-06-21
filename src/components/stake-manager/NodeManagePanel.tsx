@@ -28,7 +28,6 @@ import {
   buildUnstakePartial,
   buildClaimRewards,
   buildClaimCommission,
-  buildWithdrawDelegatorsReward,
   buildUpdateCommission,
   buildUpdateMinDelegated,
   buildActivate,
@@ -319,22 +318,13 @@ export function NodeManagePanel({
             onClick={() => exec(buildClaimRewards(node.id))}
           />
           {node.isPool && (
-            <>
-              <RewardRow
-                label="Claimable commission rewards"
-                amount={node.validatorCommissionAmount}
-                cta="Claim"
-                disabled={busy}
-                onClick={() => exec(buildClaimCommission(node.id))}
-              />
-              <RewardRow
-                label="Delegators reward (to distribute)"
-                amount={node.delegatorsReward}
-                cta="Withdraw"
-                disabled={busy}
-                onClick={() => exec(buildWithdrawDelegatorsReward(node.id))}
-              />
-            </>
+            <RewardRow
+              label="Claimable commission rewards"
+              amount={node.validatorCommissionAmount}
+              cta="Claim"
+              disabled={busy}
+              onClick={() => exec(buildClaimCommission(node.id))}
+            />
           )}
         </Section>
 
