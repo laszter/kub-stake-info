@@ -12,6 +12,11 @@ const navLinks: NavLink[] = [
   { label: "Stake Manager", href: "/stake-manager" },
   { label: "FAQ", href: "/about" },
   {
+    label: "KUB Stake",
+    href: "https://staking.kubchain.com/",
+    external: true,
+  },
+  {
     label: "KUB Scan",
     href: `${EXPLORER_URL}/address/${STAKE_MANAGER_V2_ADDRESS}`,
     external: true,
