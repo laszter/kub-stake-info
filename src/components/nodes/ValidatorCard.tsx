@@ -75,6 +75,27 @@ export function ValidatorCard({
             fee
           </span>
         </div>
+        {/* Own lines rather than more items in the row above: at the card's
+            280px minimum three label+value pairs wrap into each other, and these
+            are the figures that need their window spelled out to be honest.
+            The two rates sit within hundredths of each other, so each carries a
+            full label — "Reward rate" alone would leave a reader unable to tell
+            which one they are looking at. The delegator line is pool-only: a
+            solo node takes no delegation, so its node rate is the whole story. */}
+        {v.isPool && (
+          <div className="mt-1.5 flex items-baseline justify-between gap-2 text-xs">
+            <span className="text-ink-muted">Delegator rate · 7d</span>
+            <span className="font-medium text-ink tabular-nums">
+              {v.rewardRate}
+            </span>
+          </div>
+        )}
+        <div className="mt-1.5 flex items-baseline justify-between gap-2 text-xs">
+          <span className="text-ink-muted">Node rate · 7d</span>
+          <span className="font-medium text-ink tabular-nums">
+            {v.nodeRate}
+          </span>
+        </div>
       </div>
 
       <div className="mt-5 flex items-center justify-between border-t border-line pt-3 text-sm font-medium text-ink-muted transition-colors group-hover:text-brand">
@@ -130,6 +151,37 @@ export function ValidatorRow({
           {v.serviceFee}
         </p>
         <p className="text-[11px] text-ink-muted">fee</p>
+      </div>
+      {/* Held back to `md` — the row already spends its width on four columns at
+          `sm`, and a fifth squeezes the name to a couple of characters. */}
+      <div
+        className="hidden w-24 text-right md:block"
+        title={
+          v.isPool
+            ? "What delegators earned, measured over the last 7 days"
+            : "Reward rate, measured over the last 7 days"
+        }
+      >
+        <p className="text-sm font-medium text-ink tabular-nums">
+          {v.rewardRate}
+        </p>
+        <p className="whitespace-nowrap text-[11px] text-ink-muted">
+          {v.isPool ? "delegator rate" : "reward rate"}
+        </p>
+      </div>
+      {/* The node's own rate needs a sixth column, so it waits for `lg` — at
+          `md` the row is already full and this is the secondary of the two
+          rates for someone scanning pools to delegate to. */}
+      <div
+        className="hidden w-24 text-right lg:block"
+        title="Rewards the node produced per KUB of stake behind it, over the last 7 days"
+      >
+        <p className="text-sm font-medium text-ink tabular-nums">
+          {v.nodeRate}
+        </p>
+        <p className="whitespace-nowrap text-[11px] text-ink-muted">
+          node rate
+        </p>
       </div>
 
       {/* mobile-only compact stake */}

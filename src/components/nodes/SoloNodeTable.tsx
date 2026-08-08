@@ -25,9 +25,12 @@ export function SoloNodeTable({
 
   return (
     <div className="scrollbar-thin overflow-x-auto rounded-card border border-line bg-card">
-      <table className="w-full min-w-[520px] text-sm">
+      {/* min-width grew with the reward-rate column so the table keeps
+          scrolling horizontally instead of crushing the name column. */}
+      <table className="w-full min-w-[640px] text-sm">
         <caption className="sr-only">
-          KUB Chain solo validators with their total stake and staking power
+          KUB Chain solo validators with their total stake, node reward rate over
+          the last 7 days, and staking power
         </caption>
         <thead>
           <tr className="border-b border-line text-left text-xs uppercase tracking-wide text-ink-muted">
@@ -36,6 +39,12 @@ export function SoloNodeTable({
             </th>
             <th scope="col" className="px-5 py-3 text-right font-medium">
               Total Stake
+            </th>
+            {/* Named "Node Rate" to match the pool cards and the node page: a
+                solo node has no delegators, so this column and a pool's node
+                rate are the same measurement and must read as the same thing. */}
+            <th scope="col" className="px-5 py-3 text-right font-medium">
+              Node Rate · 7d
             </th>
             <th scope="col" className="px-5 py-3 text-right font-medium">
               Staking Power
@@ -63,6 +72,9 @@ export function SoloNodeTable({
               </td>
               <td className="px-5 py-3 text-right font-medium text-ink tabular-nums">
                 {v.totalStake} KUB
+              </td>
+              <td className="px-5 py-3 text-right font-medium text-ink tabular-nums">
+                {v.rewardRate}
               </td>
               <td className="px-5 py-3">
                 <div className="ml-auto flex w-32 items-center gap-2">

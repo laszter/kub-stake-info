@@ -6,10 +6,11 @@ import { ValidatorCard, ValidatorRow } from "./ValidatorCard";
 import { SoloNodeTable } from "./SoloNodeTable";
 import { Pagination } from "@/components/ui/Pagination";
 
-type SortKey = "stake" | "power" | "fee" | "name";
+type SortKey = "stake" | "power" | "rate" | "fee" | "name";
 const SORT_OPTIONS: { key: SortKey; label: string }[] = [
   { key: "stake", label: "Total Staking" },
   { key: "power", label: "Staking Power" },
+  { key: "rate", label: "Reward Rate" },
   { key: "fee", label: "Service Fee" },
   { key: "name", label: "Name" },
 ];
@@ -23,6 +24,12 @@ function sortValidators(list: ValidatorCardView[], key: SortKey) {
     case "power":
     case "stake":
       sorted.sort((a, b) => b.totalStakeNum - a.totalStakeNum);
+      break;
+    // Highest measured rate first. Nodes with no rate carry -1 (see
+    // `ValidatorCardView.rewardRateNum`) so they land after a real 0.00%
+    // rather than being mixed in with idle-but-measured nodes.
+    case "rate":
+      sorted.sort((a, b) => b.rewardRateNum - a.rewardRateNum);
       break;
     case "fee":
       sorted.sort((a, b) => b.feeNum - a.feeNum);

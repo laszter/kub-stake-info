@@ -2,14 +2,23 @@ import { Suspense } from "react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
-import { getValidatorByAddress } from "@/lib/staking";
-import { getBlocksValidated, getBlocksProducedSeries } from "@/lib/explorer";
+import { getValidatorByAddress, type Validator } from "@/lib/staking";
+import {
+  getBlocksValidated,
+  getBlocksProducedSeries,
+  getDelegatorCount,
+  getTopDelegators,
+} from "@/lib/explorer";
+import { getNetworkRewards, rewardRatesFor } from "@/lib/rewards";
 import { BlocksProducedChart } from "@/components/nodes/BlocksProducedChart";
+import { TopDelegatorsTable } from "@/components/nodes/TopDelegatorsTable";
 import {
   formatKUBDisplay,
   formatKUBExact,
   bpsToPercent,
   shortenAddress,
+  formatRatePercent,
+  formatAge,
 } from "@/lib/format";
 import { EXPLORER_URL } from "@/lib/chain";
 import { Avatar } from "@/components/ui/Avatar";
@@ -110,7 +119,9 @@ function StatGrid({ cols = 3, children }: { cols?: 1 | 2 | 3; children: React.Re
   );
 }
 
-/** One figure: a quiet label above a prominent, tabular value. Muted when zero. */
+/** One figure: a quiet label above a prominent, tabular value. Muted when zero.
+    `label` is a node, not a string, so a caller can hang a muted qualifier off
+    it (e.g. "· last 7d") the way the section headings below do. */
 function Stat({
   label,
   hint,
@@ -119,7 +130,7 @@ function Stat({
   title,
   muted,
 }: {
-  label: string;
+  label: React.ReactNode;
   hint?: string;
   value: React.ReactNode;
   unit?: string;
@@ -219,6 +230,226 @@ function BlocksProducedChartSkeleton() {
   return (
     <div
       className="mt-3 h-44 w-full animate-pulse rounded-lg bg-line"
+      aria-hidden
+    />
+  );
+}
+
+/** A rate label with the measurement window hung off it in muted text, matching
+    the "· top 10" and "· last 24h" qualifiers on the headings further down. The
+    window belongs on the label, not buried in the hint: an annualised rate read
+    off a 7-day sample is a different claim from a rate read off a year, and the
+    reader has to see which one they are looking at without opening anything. */
+function RateLabel({ children }: { children: string }) {
+  return (
+    <>
+      {children}
+      <span className="ml-1 text-ink-muted">· last 7d</span>
+    </>
+  );
+}
+
+/** Shown when the log scan itself failed. Kept distinct from a node that was
+    genuinely paid nothing all week — that case is a fact worth stating, this
+    one is an absence of information, and they must never render alike. */
+const NO_REWARD_DATA =
+  "Couldn't read reward history from the chain — try again shortly.";
+
+/** Whether the delegator-rate tile applies to this node. Shared by the section
+    (which sizes its grid to the tile count), the stats, and the skeleton, so the
+    three cannot disagree and shift the layout when the real values land. A pool
+    with nothing delegated is excluded along with solo nodes: there is no
+    denominator, so its delegator rate could only ever be "—". */
+function hasDelegatorRate(v: Validator): boolean {
+  return v.isPool && v.delegatedAmount > 0n;
+}
+
+/** What this node actually paid out, annualised — the one part of the page that
+    answers "what does staking here return", measured from `DistributeRewards`
+    logs rather than from any advertised rate.
+
+    Its own async component behind a Suspense boundary because the scan is the
+    heaviest read in the app (a week of network-wide logs); the contract figures
+    above it must never wait on it. The scan is network-wide and cached as a
+    single entry, so this costs nothing beyond the first page to render it.
+
+    Three-way split on the result, none of which may be conflated:
+    an unreadable chain shows "—" with an explanatory title; a node that really
+    earned nothing shows a truthful 0.00% and "None in 7 days"; anything else
+    shows the measured figures. Rates are muted at zero or "—" so a live node's
+    number is the only one that carries weight. */
+async function RewardsPerformanceStats({ v }: { v: Validator }) {
+  const rates = rewardRatesFor(
+    {
+      ids: v.validatorIds,
+      selfStake: v.amount,
+      delegatedAmount: v.delegatedAmount,
+    },
+    await getNetworkRewards(),
+  );
+  // Only an outage gets the caveat title; a real zero needs no apology.
+  const outageTitle = rates.hasData ? undefined : NO_REWARD_DATA;
+
+  return (
+    <>
+      {hasDelegatorRate(v) && (
+        <Stat
+          label={<RateLabel>Delegator reward rate</RateLabel>}
+          hint="What delegators actually earned after this pool's fee, annualised from its DistributeRewards payouts over the last 7 days. A measured result, not a forecast. Rewards come from gas fees, not inflation, so the figure is small."
+          muted={!rates.delegatorRatePct}
+          title={outageTitle}
+          value={formatRatePercent(rates.delegatorRatePct)}
+        />
+      )}
+      <Stat
+        label={<RateLabel>Node reward rate</RateLabel>}
+        hint="The node's entire payout over the last 7 days against all the stake backing it, annualised. Comparable across nodes because it doesn't move with the fee split. On a solo node every coin staked is the owner's, so this is their own return."
+        muted={!rates.nodeRatePct}
+        title={outageTitle}
+        value={formatRatePercent(rates.nodeRatePct)}
+      />
+      <Stat
+        label="Last reward"
+        hint="When this node was last paid, from the same 7-day scan. Shows whether it is still earning — unlike the Active badge, which only reflects its registration in the contract."
+        muted={!rates.hasData || rates.rewardCount === 0}
+        title={outageTitle}
+        value={
+          !rates.hasData
+            ? "—"
+            : rates.rewardCount === 0
+              ? "None in 7 days"
+              : formatAge(rates.lastRewardAgeSec)
+        }
+      />
+    </>
+  );
+}
+
+/** One skeleton tile: the real label with only its value pulsing, so the text
+    never moves when the figure arrives. */
+function RewardsSkeletonTile({ label }: { label: React.ReactNode }) {
+  return (
+    <div>
+      <dt className="text-xs text-ink-soft">{label}</dt>
+      <dd
+        className="mt-1.5 h-6 w-28 animate-pulse rounded bg-line sm:h-7"
+        aria-hidden
+      />
+    </div>
+  );
+}
+
+/** Placeholder for the rewards tiles while the scan streams in. Renders the same
+    number of tiles the result will, for the same reason `DelegatorCountSkeleton`
+    keeps its label as real text: the card must not resize on arrival. */
+function RewardsPerformanceSkeleton({
+  delegatorRate,
+}: {
+  delegatorRate: boolean;
+}) {
+  return (
+    <>
+      {delegatorRate && (
+        <RewardsSkeletonTile label={<RateLabel>Delegator reward rate</RateLabel>} />
+      )}
+      <RewardsSkeletonTile label={<RateLabel>Node reward rate</RateLabel>} />
+      <RewardsSkeletonTile label="Last reward" />
+    </>
+  );
+}
+
+/** How many accounts have delegated to this pool. The StakeManager keeps no
+    delegator roster, so the figure is the holder count of the pool's share
+    token on KUB Scan — fetched in its own async component so the on-chain
+    numbers above stream out without waiting on the explorer.
+
+    A pool whose on-chain `delegatedAmount` is zero has provably no delegators,
+    and the explorer would 404 on its share token anyway (Blockscout only
+    indexes a token after its first transfer), so that case answers 0 without a
+    request. Otherwise 0 and null are kept apart deliberately: 0 means "nobody
+    has delegated", null means "the explorer couldn't be read" and must show "—"
+    rather than a zero that reads as fact. */
+async function DelegatorCountStat({
+  share,
+  delegated,
+}: {
+  share: string;
+  delegated: bigint;
+}) {
+  const count = delegated === 0n ? 0 : await getDelegatorCount(share);
+  return (
+    <Stat
+      label="Delegators"
+      hint="Accounts that have delegated to this pool, counted from the holders of the pool's share token, per KUB Scan. It isn't a field on the StakeManager contract."
+      muted={count === null || count === 0}
+      title={
+        count === null ? "Couldn't load from KUB Scan — try again shortly." : undefined
+      }
+      value={count === null ? "—" : count.toLocaleString("en-US")}
+    />
+  );
+}
+
+/** Pulsing placeholder shown while the delegator count streams in. Keeps the
+    label as real text (only the value pulses) so nothing shifts on arrival. */
+function DelegatorCountSkeleton() {
+  return (
+    <div>
+      <dt className="text-xs text-ink-soft">Delegators</dt>
+      <dd
+        className="mt-1.5 h-6 w-28 animate-pulse rounded bg-line sm:h-7"
+        aria-hidden
+      />
+    </div>
+  );
+}
+
+/** The pool's largest delegators, crawled from KUB Scan in its own async
+    component so it streams in behind a Suspense boundary alongside — not
+    ahead of — the count.
+
+    Same three-way split as `DelegatorCountStat`: a zero `delegatedAmount`
+    short-circuits to the table's own empty state with no request; an empty
+    list is the honest "nobody has delegated yet"; and null (explorer
+    unreachable) gets a quiet note, because rendering an empty table there
+    would claim the pool has no delegators.
+
+    Amounts come back as decimal strings because `getTopDelegators` is wrapped
+    in `unstable_cache`, which cannot serialise a `bigint`; they are widened
+    back here, on the far side of the cache, since the table is a server
+    component and takes wei as `bigint`. */
+async function TopDelegatorsSection({
+  share,
+  delegated,
+}: {
+  share: string;
+  delegated: bigint;
+}) {
+  if (delegated === 0n) return <TopDelegatorsTable rows={[]} total={0n} />;
+  const rows = await getTopDelegators(share, 10);
+  if (!rows) {
+    return (
+      <p className="mt-3 text-sm text-ink-muted">
+        Couldn&apos;t load delegators from KUB Scan — try again shortly.
+      </p>
+    );
+  }
+  return (
+    <TopDelegatorsTable
+      rows={rows.map((r) => ({ address: r.address, amount: BigInt(r.amount) }))}
+      total={delegated}
+    />
+  );
+}
+
+/** Pulsing placeholder sized to a full ten-row table so the card doesn't jump
+    when the rows land: a 41px header row plus ten 44px rows and their nine
+    hairline dividers ≈ 30.5rem. Carries the same `mt-3` the table itself does
+    (the table owns that margin, so the Suspense boundary must not add one). */
+function TopDelegatorsSkeleton() {
+  return (
+    <div
+      className="mt-3 h-[30.5rem] w-full animate-pulse rounded-lg bg-line"
       aria-hidden
     />
   );
@@ -371,6 +602,9 @@ export default async function NodeDetailPage({
   const total = v.totalStake;
   const name = v.name ?? shortenAddress(v.address);
   const asOf = new Date();
+  // Computed once here so the grid's column count and the Suspense fallback's
+  // tile count are decided by the same predicate the tiles themselves use.
+  const showDelegatorRate = hasDelegatorRate(v);
 
   // This explorer's Stake Manager only registers/manages nodes you own — it has
   // no delegate flow. So a pool's primary action links out to the official KUB
@@ -492,6 +726,55 @@ export default async function NodeDetailPage({
           </div>
         </div>
       </Section>
+
+      {/* Rewards performance — what that stake actually earned. Sits directly
+          under Overview because "how much is staked here" and "what did it
+          return" are one question, and above Delegators because the rate is
+          what a reader is deciding on. Grid is sized to the tile count so a
+          solo node doesn't leave a dangling third column. */}
+      <Section id="performance-h" title="Rewards performance">
+        <StatGrid cols={showDelegatorRate ? 3 : 2}>
+          <Suspense
+            fallback={<RewardsPerformanceSkeleton delegatorRate={showDelegatorRate} />}
+          >
+            <RewardsPerformanceStats v={v} />
+          </Suspense>
+        </StatGrid>
+      </Section>
+
+      {/* Delegators — who the delegated half of the composition bar above
+          actually is: how many accounts back this pool and how concentrated
+          their stake is. Pools only; a solo node has no share contract and so
+          no delegators to show. Both figures come from KUB Scan, each behind
+          its own Suspense boundary so neither delays the other or the
+          on-chain figures. */}
+      {v.isPool && (
+        <Section id="delegators-h" title="Delegators">
+          <div className="space-y-4">
+            <StatGrid cols={1}>
+              <Suspense fallback={<DelegatorCountSkeleton />}>
+                <DelegatorCountStat
+                  share={v.validatorShareContract}
+                  delegated={v.delegatedAmount}
+                />
+              </Suspense>
+            </StatGrid>
+            <div className="rounded-card border border-line bg-card p-5 sm:p-6">
+              <h3 className="flex items-center text-sm font-medium text-ink-soft">
+                Top delegators
+                <span className="ml-1 text-ink-muted">· top 10</span>
+                <InfoHint label="The ten largest delegations into this pool, per KUB Scan, each shown as a share of the pool's total delegated stake. A few addresses holding most of the pool means its stake — and its block production — depends on those few staying." />
+              </h3>
+              <Suspense fallback={<TopDelegatorsSkeleton />}>
+                <TopDelegatorsSection
+                  share={v.validatorShareContract}
+                  delegated={v.delegatedAmount}
+                />
+              </Suspense>
+            </div>
+          </div>
+        </Section>
+      )}
 
       {/* Block production — validated-block count + 24h hourly chart, both
           streamed from the explorer so they never block the on-chain figures

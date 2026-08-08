@@ -47,6 +47,17 @@ export interface Validator {
   isPool: boolean;
   /** totalStake / totalStaked as a 0–1 ratio (for power display & sorting). */
   powerRatio: number;
+  /**
+   * Every validator ID this address holds, ascending.
+   *
+   * One address can own several IDs — it re-registers over time and keeps the
+   * old slots (measured on mainnet: 0x8427…1c0b holds [25, 30, 35, 39],
+   * 0xdc64…afb3 holds [20, 22]). On-chain events such as `DistributeRewards`
+   * are keyed by validator ID, so anything aggregating them has to sum across
+   * *all* of these; using only the current/latest ID silently undercounts.
+   * Empty when the index lookup failed.
+   */
+  validatorIds: number[];
 }
 
 export interface GlobalStats {
@@ -72,7 +83,13 @@ function metaFor(address: string) {
 /**
  * Fetch everything in as few RPC round-trips as possible:
  *  1. globals + the full validator address list
- *  2. one multicall for getValidatorInfo of every unique address
+ *  2. one multicall for getValidatorInfo + getValidatorIndexLength of every
+ *     unique address
+ *  3. one multicall expanding those lengths into getValidatorIndexByIndex
+ *
+ * Step 3 can't be folded into step 2 — the number of index lookups is only
+ * known once the lengths come back. It stays a single batched multicall for
+ * the whole network (~93 calls, ~160 ms) instead of a per-address loop.
  *
  * Wrapped in React.cache so stats + page + detail dedupe within a request.
  */
@@ -97,14 +114,51 @@ export const getStakingData = cache(async (): Promise<StakingData> => {
     }
   }
 
-  const infos = (await publicClient.multicall({
-    contracts: uniqueAddresses.map((address) => ({
-      ...stakeManager,
-      functionName: "getValidatorInfo",
-      args: [address],
-    })),
+  // Round 2: the validator struct and the ID count, interleaved per address so
+  // both come back in one batched round-trip.
+  const infoAndLengths = (await publicClient.multicall({
+    contracts: uniqueAddresses.flatMap((address) => [
+      { ...stakeManager, functionName: "getValidatorInfo", args: [address] },
+      { ...stakeManager, functionName: "getValidatorIndexLength", args: [address] },
+    ]),
     allowFailure: true,
-  })) as { status: "success" | "failure"; result?: RawValidator }[];
+  })) as { status: "success" | "failure"; result?: unknown }[];
+
+  const infos = uniqueAddresses.map(
+    (_, i) => infoAndLengths[i * 2] as { status: "success" | "failure"; result?: RawValidator },
+  );
+  const idCounts = uniqueAddresses.map((_, i) => {
+    const res = infoAndLengths[i * 2 + 1];
+    return res?.status === "success" ? Number(res.result as bigint) : 0;
+  });
+
+  // Round 3: flatten (address, index) pairs across the whole network into one
+  // multicall. getValidatorIndexByIndex only takes a single index, so the fan-out
+  // is unavoidable — batching it keeps the cost at one round-trip regardless.
+  const idLookups: { addrIndex: number; index: number }[] = [];
+  idCounts.forEach((count, addrIndex) => {
+    for (let index = 0; index < count; index++) idLookups.push({ addrIndex, index });
+  });
+
+  const idResults = idLookups.length
+    ? ((await publicClient.multicall({
+        contracts: idLookups.map(({ addrIndex, index }) => ({
+          ...stakeManager,
+          functionName: "getValidatorIndexByIndex",
+          args: [uniqueAddresses[addrIndex], BigInt(index)],
+        })),
+        allowFailure: true,
+      })) as { status: "success" | "failure"; result?: bigint }[])
+    : [];
+
+  const idsByAddress: number[][] = uniqueAddresses.map(() => []);
+  idLookups.forEach(({ addrIndex }, i) => {
+    const res = idResults[i];
+    if (res?.status !== "success" || res.result === undefined) return;
+    idsByAddress[addrIndex].push(Number(res.result));
+  });
+  // Ascending, so consumers get a stable order regardless of storage layout.
+  for (const ids of idsByAddress) ids.sort((a, b) => a - b);
 
   const all: Validator[] = [];
   uniqueAddresses.forEach((address, i) => {
@@ -137,6 +191,7 @@ export const getStakingData = cache(async (): Promise<StakingData> => {
       commissionRate: v.commissionRate,
       isPool,
       powerRatio,
+      validatorIds: idsByAddress[i],
     });
   });
 

@@ -8,10 +8,19 @@ and present it with a UI modelled on [staking.kubchain.com](https://staking.kubc
 
 - **Overview** (`/`) — network stats (total validators, total stake, total rewards),
   a **Pool Node** card grid, and a **Solo Node** table with search, sort,
-  grid/list toggle and pagination.
+  grid/list toggle and pagination. Cards and rows carry each node's **reward
+  rates** measured over the last 7 days — pool cards show the delegator rate and
+  the node rate side by side, the solo table shows the node rate — and the list
+  can be sorted by the delegator rate.
 - **Node detail** (`/nodes/[address]`) — every field exposed by the contract for
   a validator: self stake, delegated amount, rewards, commission rates &
-  accrued amounts, signer, share contract, status.
+  accrued amounts, signer, share contract, status. A **Rewards performance**
+  section adds the **delegator** and **node reward rates** measured over the
+  last 7 days of on-chain reward events, plus **Last reward** — how long ago the
+  node was actually paid, which catches nodes that read `Active` but have gone
+  quiet. Pool nodes additionally show a **delegator count** and a **Top
+  delegators** table (rank, address, KUB, share of the pool), both read from
+  KUB Scan rather than the contract.
 - **Stake Manager** (`/stake-manager`) — connect a wallet to manage the validator
   nodes **you own** (discovered via the StakingNFT contract, where each `tokenId`
   is a validatorId). Stake, restake, unstake, unstake-partial, claim rewards,
@@ -67,6 +76,8 @@ Copy `.env.example` to `.env.local` to override any of these (all optional in de
 | Per-validator data | `getValidatorInfo(address)` | full struct in one multicall |
 | Pool vs Solo | `validatorShareContract != 0x0` | Pool has a share contract |
 | Service Fee | `commissionRate` | basis points → % |
+| Delegators / Top delegators | **Not on-chain** — KUB Scan `/api/v2/tokens/{share}` | Holder count and top holders of the pool's ValidatorShare ERC-20 (`BKC-D`); 1 share == 1 KUB, so holder balances are delegated amounts. Pool nodes only |
+| Reward rate / Last reward | **Not a contract field** — `DistributeRewards` logs from `StakeManagerV2` | 7 days of logs scanned network-wide once, summed per `validatorId` (an address can own several) and annualised ÷ 7 × 365. Delegator rate = `delegatorsReward` ÷ delegated amount; node rate = `totalReward` ÷ total stake (self + delegated) — against total stake, not self-stake, so a pool with a 1 KUB self-stake and 6M delegated doesn't read 115,989%. Cached 5 min, shared by every page |
 | "My nodes" (Stake Manager) | StakingNFT balance / `tokenId` | each owned `tokenId` == a validatorId |
 
 Validator **names & logos are not on-chain**; they come from a small off-chain
@@ -77,7 +88,7 @@ registry at `src/data/validators.json` (with an address fallback).
 | Contract | Address | Role |
 |---|---|---|
 | `StakeManagerStorageV2` | `0xFd98aac1Fbc57e6BC16A167452DBA7af2B6a4c0d` | On-chain storage — source of all validator **reads** |
-| `StakeManagerV2` | `0x443502b3F7C0934576F49CDa084f78640f56A80F` | Logic contract — target of all **write** actions |
+| `StakeManagerV2` | `0x443502b3F7C0934576F49CDa084f78640f56A80F` | Logic contract — target of all **write** actions, and the source of the `DistributeRewards` **event log** the reward rates are measured from |
 | `StakingNFT` | `0x8ae4cb6a020121bcbd855fffc79a11984be62b39` | Each node is an NFT (`tokenId` == validatorId) — used to find "my nodes" |
 | `Multicall3` | `0xcA11bde05977b3631167028862bE2a173976CA11` | Batches reads into one round-trip |
 
@@ -105,6 +116,7 @@ src/
   providers/   # ThemeProvider, Web3Provider, WalletAuthProvider
   content/     # about.ts (FAQ + glossary copy)
   lib/         # chain.ts (viem), contract.ts (addresses + abi), staking.ts (reads),
+               #   rewards.ts (7-day DistributeRewards log scan), explorer.ts (KUB Scan),
                #   nodeActions.ts (write builders), wagmi.ts, format.ts, view.ts, site.ts
                #   abi/ (stakeManagerV2.json, stakingNft.json)
   data/        # abi.json (storage), validators.json (off-chain name/logo registry)

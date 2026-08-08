@@ -263,3 +263,195 @@ export const getBlocksProducedSeries = unstable_cache(
   ["blocks-produced-series"],
   { revalidate: 300 },
 );
+
+/* ── Pool delegators (share-token holders) ───────────────────────────────── */
+
+/* A pool's ValidatorShare contract is a plain ERC-20 ("BKC POS Delegator"),
+   minted to whoever delegates into that pool. The StakeManager exposes no
+   delegator roster or count, so the explorer's token views are the only source:
+   holders = delegators, and each holder's balance = their stake. */
+const tokenUrl = (token: string) => `${EXPLORER_URL}/api/v2/tokens/${token}`;
+const tokenHoldersUrl = (token: string) =>
+  `${EXPLORER_URL}/api/v2/tokens/${token}/holders`;
+const tokenCountersUrl = (token: string) =>
+  `${EXPLORER_URL}/api/v2/tokens/${token}/counters`;
+
+export type Delegator = {
+  /** Delegator's account, as returned by the explorer (0x-prefixed). */
+  address: string;
+  /** Stake in wei, as an unsigned decimal string — *not* a `bigint`.
+      `unstable_cache` serialises a wrapped function's result with
+      `JSON.stringify`, which throws `TypeError: Do not know how to serialize a
+      BigInt`; the rejection is swallowed as an unhandled one and the entry is
+      never written, so every request silently re-crawls the explorer. Callers
+      that need arithmetic take `BigInt(amount)` on the far side of the cache.
+
+      The share token mints 1:1 against KUB — a pool's share `total_supply`
+      matches its on-chain `delegatedAmount` to the wei — so this is already a
+      KUB amount and needs no conversion before formatting or before taking its
+      share of `delegatedAmount`. */
+  amount: string;
+};
+
+/**
+ * Holder tally of a pool's share token, i.e. how many accounts have delegated
+ * to that pool.
+ *
+ * `/tokens/{token}` carries `holders` as a stored field rather than one of
+ * Blockscout's lazily-recomputed counters, so a single request suffices and the
+ * six-attempt poll `fetchBlocksValidated` needs is unnecessary here — two tries
+ * only to ride out a transient network blip. Should that field ever go missing,
+ * we drop to `/tokens/{token}/counters`, which *is* lazy and therefore polled.
+ *
+ * A 404 is not a failure: Blockscout only indexes a token once it has seen a
+ * transfer, so a pool nobody has delegated to yet has no token record at all.
+ * Reporting null there would show "—" forever on an empty pool; it is a true
+ * zero. null is reserved for "the explorer could not be read", so the caller
+ * can tell an empty pool apart from an outage.
+ */
+async function fetchDelegatorCount(share: string): Promise<number | null> {
+  for (let attempt = 0; attempt < 2; attempt++) {
+    try {
+      const res = await fetch(`${tokenUrl(share)}?_=${attempt}`, {
+        cache: "no-store",
+        headers: { accept: "application/json" },
+        signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+      });
+      if (res.status === 404) return 0; // token never indexed ⇒ no delegators
+      if (res.ok) {
+        const body = await res.text();
+        if (body) {
+          const { holders } = JSON.parse(body) as { holders?: string | null };
+          if (holders != null && holders !== "") {
+            const n = Number(holders);
+            if (Number.isFinite(n)) return n;
+          }
+          return fetchTokenHoldersCounter(share);
+        }
+      }
+    } catch {
+      // network error, timeout, or malformed JSON — retry once, then give up
+    }
+    if (attempt === 0) await sleep(POLL_DELAY_MS);
+  }
+  return null;
+}
+
+/** Fallback holder tally. This endpoint is one of Blockscout's lazy counters —
+    a cold hit answers with an empty body and schedules a recompute — so it is
+    polled with a unique query per attempt, exactly as `fetchBlocksValidated`
+    does for address counters. */
+async function fetchTokenHoldersCounter(token: string): Promise<number | null> {
+  for (let attempt = 0; attempt < POLL_ATTEMPTS; attempt++) {
+    try {
+      const res = await fetch(`${tokenCountersUrl(token)}?_=${attempt}`, {
+        cache: "no-store",
+        headers: { accept: "application/json" },
+        signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+      });
+      if (res.status === 404) return 0;
+      if (res.ok) {
+        const body = await res.text();
+        if (body) {
+          const { token_holders_count } = JSON.parse(body) as {
+            token_holders_count?: string | null;
+          };
+          if (token_holders_count != null && token_holders_count !== "") {
+            const n = Number(token_holders_count);
+            if (Number.isFinite(n)) return n;
+          }
+        }
+      }
+    } catch {
+      // network error, timeout, or malformed JSON — fall through and retry
+    }
+    if (attempt < POLL_ATTEMPTS - 1) await sleep(POLL_DELAY_MS);
+  }
+  return null;
+}
+
+/**
+ * The `limit` largest delegators of a pool, biggest stake first.
+ *
+ * Blockscout ignores `?limit=` on this endpoint — it always answers with one
+ * page of 50 holders — so the cut to the top `limit` happens here. It also
+ * already returns the page sorted by balance descending, but we re-sort rather
+ * than depend on an undocumented ordering that a future explorer release could
+ * change. Malformed rows are skipped instead of failing the whole table: one
+ * bad entry should not cost the user the other nine.
+ *
+ * Same contract as `fetchDelegatorCount`: 404 means the token was never indexed
+ * because nobody has delegated (an empty list), while null means the explorer
+ * could not be read.
+ */
+async function fetchTopDelegators(
+  share: string,
+  limit: number,
+): Promise<Delegator[] | null> {
+  for (let attempt = 0; attempt < 2; attempt++) {
+    try {
+      const res = await fetch(`${tokenHoldersUrl(share)}?_=${attempt}`, {
+        cache: "no-store",
+        headers: { accept: "application/json" },
+        signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+      });
+      if (res.status === 404) return []; // token never indexed ⇒ no delegators
+      if (res.ok) {
+        const body = (await res.json()) as {
+          items?: {
+            address?: { hash?: string } | null;
+            value?: string | null;
+          }[];
+        };
+        const items = Array.isArray(body.items) ? body.items : [];
+        // Ranking has to compare numeric value, and these are wei-scale figures
+        // of differing digit counts — a plain string sort would put "9" above
+        // "10000". So each row carries a parsed `wei` alongside its string form
+        // purely to order the list; only the string crosses the cache boundary.
+        const rows: (Delegator & { wei: bigint })[] = [];
+        for (const item of items) {
+          const address = item.address?.hash;
+          const value = item.value;
+          // Balances arrive as unsigned decimal strings; anything else would
+          // throw in BigInt, so drop the row rather than the whole response.
+          if (!address || !value || !/^\d+$/.test(value)) continue;
+          rows.push({ address, amount: value, wei: BigInt(value) });
+        }
+        rows.sort((a, b) => (a.wei < b.wei ? 1 : a.wei > b.wei ? -1 : 0));
+        return rows
+          .slice(0, limit)
+          .map(({ address, amount }) => ({ address, amount }));
+      }
+    } catch {
+      // network error, timeout, or malformed JSON — retry once, then give up
+    }
+    if (attempt === 0) await sleep(POLL_DELAY_MS);
+  }
+  return null;
+}
+
+/**
+ * Cached for 60s to match the node pages' revalidation — a single cheap lookup,
+ * same trade-off as `getBlocksValidated`. Wrapped in unstable_cache so the node
+ * route stays ISR (the result is treated as cached data, not a per-request
+ * dynamic read).
+ */
+export const getDelegatorCount = unstable_cache(
+  fetchDelegatorCount,
+  ["delegator-count"],
+  { revalidate: 60 },
+);
+
+/**
+ * Cached for 5 minutes: a leaderboard of the largest stakes barely moves from
+ * minute to minute, and the payload is a 50-row page rather than one number, so
+ * it earns a longer TTL than the count — the same reasoning as
+ * `getBlocksProducedSeries`. Wrapped in unstable_cache to keep the node route
+ * ISR — which is also why `Delegator.amount` is a decimal string: the cache
+ * serialises with `JSON.stringify`, and a `bigint` there fails to write at all.
+ */
+export const getTopDelegators = unstable_cache(
+  fetchTopDelegators,
+  ["top-delegators"],
+  { revalidate: 300 },
+);

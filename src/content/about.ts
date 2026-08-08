@@ -56,6 +56,17 @@ export const FAQ_ITEMS: Faq[] = [
       "Because the commission rate is applied to both parts of the split reward, the contract records two amounts: “validator commission” is the cut taken from the validator's own self-stake share, and “delegator commission” is the cut taken from the delegators' share. Both belong to and are paid to the node owner (claimed together as commission rewards). The validator-commission part is simply carved out of the owner's own reward and handed straight back, so it nets out — the figure that genuinely adds to the owner's earnings is the delegator commission, the fee charged on the delegators' rewards.",
   },
   {
+    question: "How is the reward rate calculated?",
+    answer:
+      "From rewards that were actually paid out on-chain, not from a projection. This site reads every DistributeRewards event emitted by the StakeManagerV2 contract over the last 7 days, adds up what each node was paid, divides by the stake standing behind it and annualises the result (÷ 7 × 365) — the annual percentage rate, or APR, the node has been running at. The delegator reward rate uses the delegators' share of those rewards over the pool's delegated amount, so it is what delegators earned after the pool's commission. The node reward rate uses the whole reward, before it is split, over the node's total stake (self-stake plus delegated) — how much reward the node produced per KUB backing it. Measuring it against total stake rather than the owner's own stake is what keeps nodes comparable: one pool puts up 1 KUB of self-stake against six million KUB delegated to it, and dividing by that would print a rate in the tens of thousands of percent — arithmetically true, but meaningless next to any other node. For a Solo Node the whole stake is the owner's, so the node reward rate is exactly what its owner earned. Where one address owns several validator IDs, all of them are counted together. It is a measurement of the past week, not a forecast or a promise.",
+  },
+  {
+    question:
+      "Why is the reward rate so low, and why does it differ from other sites?",
+    answer:
+      "Because rewards on the KUB Chain come from gas fees, not from inflation: the network does not mint new KUB to pay validators, it shares out the fees the chain actually collected. Measured rates therefore land at roughly 0.3–1% a year, far below what the word APR suggests on chains that pay rewards by issuing new tokens. The number can differ from other sites because they may measure a different window (a day, a month, or since launch), may include or exclude the commission a node keeps for itself, and because the stake used as the denominator here is the stake as it is now while the rewards are those of the past 7 days — a pool that grew or shrank during the week reads slightly low or high. A node that was paid nothing at all in the window reads 0.00%, and its “Last reward” shows “None in 7 days”.",
+  },
+  {
     question: "Can I stake or manage my own validator nodes here?",
     answer:
       "Yes. Open the Stake Manager and connect a wallet on the KUB Chain to see and manage the nodes that wallet owns. You can register a new Pool or Solo node, add stake (restake), unstake part or all of a node, claim your validator and commission rewards, update a pool's commission rate and minimum delegation, and activate a node. A “Claim all” action sweeps every claimable reward across your nodes in one go. Nothing moves without your wallet's confirmation — until you sign, the app stays read-only.",
@@ -70,14 +81,19 @@ export const FAQ_ITEMS: Faq[] = [
     },
   },
   {
+    question: "Where does the delegator count on a node page come from?",
+    answer:
+      "From the KUB Scan block explorer, not from the StakeManager contract, which does not track how many accounts have delegated. A Pool Node's validator share contract is an ERC-20 token (“BKC POS Delegator”, BKC-D) minted one-for-one with the KUB delegated to that pool, so the accounts holding it are that pool's delegators. This site reads the token's holder count, and the largest holders shown in the Top delegators table, from KUB Scan. The number can differ from other sites because it counts holders at the explorer's latest indexed block: an address that has fully undelegated is no longer counted, and someone delegating from several addresses counts once per address. Solo Nodes have no share contract, so they have no delegators.",
+  },
+  {
     question: "How often is the data updated?",
     answer:
-      "The Overview and node-detail pages are rendered on the server and re-read the chain at most once per minute (60-second incremental regeneration); each page's “Data as of” timestamp shows when that happened. While a wallet is connected, the Stake Manager refreshes your nodes and balances live, about every 20 seconds.",
+      "The Overview and node-detail pages are rendered on the server and re-read the chain at most once per minute (60-second incremental regeneration); each page's “Data as of” timestamp shows when that happened. The reward rate and “Last reward” figures are the exception: they are measured over a 7-day window of reward events, which is a much larger read, so that scan is refreshed every 5 minutes and shared by every page. While a wallet is connected, the Stake Manager refreshes your nodes and balances live, about every 20 seconds.",
   },
   {
     question: "Which smart contracts does this read from?",
     answer:
-      `Validator data is read from the StakeManagerStorageV2 contract at ${STAKE_MANAGER_ADDRESS}. To find the nodes a connected wallet owns, the Stake Manager reads the StakingNFT contract at ${STAKING_NFT_ADDRESS} — each node is an NFT whose token ID is its validator ID. Wallet write actions (stake, restake, unstake, claim and settings updates) go to the StakeManagerV2 contract at ${STAKE_MANAGER_V2_ADDRESS}. All are on the KUB Chain (chainId 96).`,
+      `Validator data is read from the StakeManagerStorageV2 contract at ${STAKE_MANAGER_ADDRESS}. To find the nodes a connected wallet owns, the Stake Manager reads the StakingNFT contract at ${STAKING_NFT_ADDRESS} — each node is an NFT whose token ID is its validator ID. Wallet write actions (stake, restake, unstake, claim and settings updates) go to the StakeManagerV2 contract at ${STAKE_MANAGER_V2_ADDRESS}; that same contract is also read for its DistributeRewards event log, which is where the reward rates and “Last reward” come from. All are on the KUB Chain (chainId 96).`,
   },
   {
     question: "Is this the official KUB staking site?",
@@ -111,6 +127,11 @@ export const GLOSSARY: Term[] = [
     definition: "The total KUB delegated to a validator by other users.",
   },
   {
+    term: "Delegators",
+    definition:
+      "The number of accounts delegating to a pool, counted from the holders of the pool's share token (an ERC-20) as indexed by KUB Scan — it is not a field in the StakeManager contract.",
+  },
+  {
     term: "Total Stake",
     definition:
       "Self-stake plus delegated amount — a validator's full backing stake.",
@@ -124,6 +145,16 @@ export const GLOSSARY: Term[] = [
     term: "Commission Rate",
     definition:
       "The percentage of rewards a validator keeps before paying delegators, stored on-chain in basis points (10,000 = 100%).",
+  },
+  {
+    term: "Reward Rate (APR)",
+    definition:
+      "The annual percentage rate (APR) a node has actually been paying, measured from the rewards distributed on-chain over the last 7 days and annualised — an observed rate, not a projected yield. Shown as a delegator reward rate (the delegators' share of those rewards over the pool's delegated amount, after commission) and a node reward rate (the whole reward before it is split, over the node's total stake).",
+  },
+  {
+    term: "Last Reward",
+    definition:
+      "How long ago a node was last paid a reward on-chain — a liveness signal, since the Active status only reflects a node's registration in the contract, not whether it is still producing.",
   },
   {
     term: "Restake",

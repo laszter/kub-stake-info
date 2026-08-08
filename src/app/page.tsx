@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { getStakingData } from "@/lib/staking";
+import { getNetworkRewards, rewardRatesFor } from "@/lib/rewards";
 import { toCardView } from "@/lib/view";
 import { formatKUB, shortenAddress } from "@/lib/format";
 import { Hero, type StakeDistribution } from "@/components/layout/Hero";
@@ -26,6 +27,22 @@ export async function generateMetadata(): Promise<Metadata> {
 
 export default async function HomePage() {
   const { stats, pools, solos, all } = await getStakingData();
+  // One network-wide reward scan for the whole page (and, via the same cache
+  // entry, for every node page) — see `getNetworkRewards`. Null on an RPC
+  // failure, which every card then renders as an em dash rather than a zero.
+  const rewards = await getNetworkRewards();
+  const withRates = (v: (typeof all)[number]) =>
+    toCardView(
+      v,
+      rewardRatesFor(
+        {
+          ids: v.validatorIds,
+          selfStake: v.amount,
+          delegatedAmount: v.delegatedAmount,
+        },
+        rewards,
+      ),
+    );
   const liveValidators = all.filter(
     (v) => v.status === "Active" && v.totalStake > 0n,
   );
@@ -56,8 +73,8 @@ export default async function HomePage() {
       />
       <Hero stats={stats} asOf={asOf} distribution={distribution} />
       <ValidatorExplorer
-        pools={pools.map(toCardView)}
-        solos={solos.map(toCardView)}
+        pools={pools.map(withRates)}
+        solos={solos.map(withRates)}
       />
     </div>
   );
