@@ -58,6 +58,20 @@
   --color-status-unstaked: #b45309;
   --color-status-idle: #707070;
 
+  /* Second chart series, for the node page's overlay chart. The first series
+     uses `brand`, so this has to stay legible *next to* that green: orange sits
+     furthest from it on the wheel and was the clearest of eight candidates when
+     they were rendered side by side against real data.
+
+     3.6:1 on the light page — past the 3:1 WCAG asks of a graphical object, but
+     without much to spare, so do not thin the 2px stroke that carries it.
+
+     Orange against green is the pairing red-green colour blindness handles
+     worst, so colour deliberately is not the only cue: the second line is
+     dashed, the legend draws both strokes, and the tooltip names each series.
+     Those carry the distinction on their own if the hues collapse. */
+  --color-chart-alt: #ea580c;
+
   --font-sans: var(--font-roboto), ui-sans-serif, system-ui, -apple-system,
     "Segoe UI", Roboto, sans-serif;
 
@@ -100,6 +114,10 @@
   --color-status-active: #16c47e;
   --color-status-unstaked: #fbbf24;
   --color-status-idle: #8e97a4;
+
+  /* Lifted well clear of the dark card (#141a22) — the light-mode orange goes
+     muddy there. 7.8:1 against the card. */
+  --color-chart-alt: #fb923c;
 }
 
 /* Native form controls, scrollbars and autofill follow the active theme. */

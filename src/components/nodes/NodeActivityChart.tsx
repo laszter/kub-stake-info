@@ -4,9 +4,9 @@ import { useState } from "react";
 import type { BlocksProducedSeries } from "@/lib/explorer";
 import type { RewardSeries } from "@/lib/rewards";
 import { InfoHint } from "@/components/ui/InfoHint";
-import { HourlyChart } from "./HourlyChart";
+import { HourlyChart, type ChartSeries } from "./HourlyChart";
 
-type Tab = "blocks" | "rewards";
+type Tab = "blocks" | "rewards" | "both";
 
 /** Counts are whole blocks; the average is not, so it rounds here rather than
     printing "222.79 blocks/hr". Every other value it sees is already an
@@ -38,23 +38,45 @@ const HINTS: Record<Tab, string> = {
     "Blocks this node produced (signed) in each of the last 24 hours, per KUB Scan. Dips indicate missed slots or downtime.",
   rewards:
     "KUB paid out to this node in each of the last 24 hours, summed from its DistributeRewards events. This is the whole payout before the split, so on a pool it includes the delegators' share as well as the owner's.",
+  both:
+    "Blocks produced and KUB paid out, hour by hour. Each line has its own scale — the two differ by orders of magnitude — so read the shapes against each other, not the heights: hours where reward outruns production, or lags it, are the interesting ones.",
 };
 
 const TITLES: Record<Tab, string> = {
   blocks: "Blocks produced per hour",
   rewards: "KUB rewards per hour",
+  both: "Blocks & KUB rewards per hour",
+};
+
+/** Base spec for each series. Colour and stroke are decided per tab: alone, a
+    series gets the brand green and its area fill; overlaid, the second takes the
+    `chart-alt` token and a dashed stroke, and neither is filled — two
+    translucent fills stacked read as a third colour and swallow the lines. */
+const BLOCKS: Omit<ChartSeries, "values"> = {
+  format: formatBlocks,
+  formatTick: formatBlocks,
+  unit: "blocks",
+  name: "Blocks",
+  color: "var(--color-brand)",
+};
+const REWARDS: Omit<ChartSeries, "values"> = {
+  format: formatKub,
+  formatTick: formatKubTick,
+  unit: "KUB",
+  name: "KUB rewards",
+  color: "var(--color-brand)",
 };
 
 /**
- * The node page's hourly activity card: one chart, two series, a segmented
- * control to switch between them.
+ * The node page's hourly activity card: one chart, three views — blocks, KUB
+ * paid out, or both overlaid — behind a segmented control.
  *
- * Both series arrive as props already fetched — they come from different places
+ * Both series arrive as props already fetched. They come from different places
  * (the explorer crawl for blocks, the network-wide log scan for rewards) and
  * neither is fetched on switch, so flipping tabs is instant and costs nothing.
  *
- * Each tab keeps the page's three-way discipline about missing data, because the
- * three cases mean different things and must not be conflated: a source that
+ * Every tab keeps the page's three-way discipline about missing data, because
+ * the three cases mean different things and must not be conflated: a source that
  * could not be read says so, a node that genuinely did nothing in the window
  * says *that*, and anything else draws the chart. Silently plotting 24 zeroes
  * for an outage would read as a dead node.
@@ -75,8 +97,69 @@ export function NodeActivityChart({
       on ? "bg-card text-brand-dark shadow-sm" : "text-ink-muted hover:text-ink"
     }`;
 
-  const series = tab === "blocks" ? blocks : rewards;
-  const values = tab === "blocks" ? blocks?.counts : rewards?.values;
+  const blocksEmpty = blocks?.counts.every((v) => v === 0) ?? true;
+  const rewardsEmpty = rewards?.values.every((v) => v === 0) ?? true;
+
+  function panel() {
+    if (tab === "blocks") {
+      if (!blocks) return <Note>{OUTAGE.blocks}</Note>;
+      if (blocksEmpty) return <Note>No blocks produced in the last 24 hours.</Note>;
+      return (
+        <HourlyChart
+          series={[{ ...BLOCKS, values: blocks.counts, fill: true }]}
+          bucketStarts={blocks.bucketStarts}
+          to={blocks.to}
+          title={TITLES.blocks}
+        />
+      );
+    }
+
+    if (tab === "rewards") {
+      if (!rewards) return <Note>{OUTAGE.rewards}</Note>;
+      if (rewardsEmpty) return <Note>No rewards paid in the last 24 hours.</Note>;
+      return (
+        <HourlyChart
+          series={[{ ...REWARDS, values: rewards.values, fill: true }]}
+          bucketStarts={rewards.bucketStarts}
+          to={rewards.to}
+          title={TITLES.rewards}
+        />
+      );
+    }
+
+    // Overlay. Needs both sources, so an outage in either is fatal to this view
+    // even though the other tab still works — say which one is missing rather
+    // than drawing half a comparison.
+    if (!blocks || !rewards) {
+      return <Note>{!blocks ? OUTAGE.blocks : OUTAGE.rewards}</Note>;
+    }
+    // One flat line against a live one is still a real comparison, so only an
+    // entirely silent node gets the note.
+    if (blocksEmpty && rewardsEmpty) {
+      return <Note>No blocks produced and no rewards paid in the last 24 hours.</Note>;
+    }
+    return (
+      <HourlyChart
+        series={[
+          { ...BLOCKS, values: blocks.counts },
+          {
+            ...REWARDS,
+            values: rewards.values,
+            color: "var(--color-chart-alt)",
+            dashed: true,
+          },
+        ]}
+        // Both series are 24 buckets ending at "now" (`HOURS` in `explorer.ts`,
+        // `SERIES_HOURS` in `rewards.ts`), so they line up index by index. The
+        // axis labels come from the blocks series; the two are cached separately
+        // and can be anchored a few minutes apart, which is invisible against
+        // labels that only read to the hour.
+        bucketStarts={blocks.bucketStarts}
+        to={blocks.to}
+        title={TITLES.both}
+      />
+    );
+  }
 
   return (
     <>
@@ -85,7 +168,7 @@ export function NodeActivityChart({
           {TITLES[tab]}
           <span className="ml-1 text-ink-muted">· last 24h</span>
           {/* Keyed so the popover unmounts on tab change — otherwise an open
-              hint would keep showing the previous series' explanation. */}
+              hint would keep showing the previous view's explanation. */}
           <InfoHint key={tab} label={HINTS[tab]} />
         </h3>
 
@@ -108,32 +191,28 @@ export function NodeActivityChart({
           >
             KUB
           </button>
+          <button
+            type="button"
+            onClick={() => setTab("both")}
+            className={tabBtn(tab === "both")}
+            aria-label="Show blocks and KUB rewards together"
+            aria-pressed={tab === "both"}
+          >
+            Both
+          </button>
         </div>
       </div>
 
-      {!series || !values ? (
-        <p className="mt-3 text-sm text-ink-muted">
-          {tab === "blocks"
-            ? "Couldn't load production history from KUB Scan — try again shortly."
-            : "Couldn't read reward history from the chain — try again shortly."}
-        </p>
-      ) : values.every((v) => v === 0) ? (
-        <p className="mt-3 text-sm text-ink-muted">
-          {tab === "blocks"
-            ? "No blocks produced in the last 24 hours."
-            : "No rewards paid in the last 24 hours."}
-        </p>
-      ) : (
-        <HourlyChart
-          values={values}
-          bucketStarts={series.bucketStarts}
-          to={series.to}
-          format={tab === "blocks" ? formatBlocks : formatKub}
-          formatTick={tab === "blocks" ? formatBlocks : formatKubTick}
-          unit={tab === "blocks" ? "blocks" : "KUB"}
-          title={TITLES[tab]}
-        />
-      )}
+      {panel()}
     </>
   );
+}
+
+const OUTAGE = {
+  blocks: "Couldn't load production history from KUB Scan — try again shortly.",
+  rewards: "Couldn't read reward history from the chain — try again shortly.",
+};
+
+function Note({ children }: { children: React.ReactNode }) {
+  return <p className="mt-3 text-sm text-ink-muted">{children}</p>;
 }
