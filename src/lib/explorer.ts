@@ -218,15 +218,25 @@ async function pool<T>(tasks: (() => Promise<T>)[], limit: number): Promise<T[]>
 
 async function fetchBlocksProducedSeries(
   address: string,
+  anchorBlock?: number,
+  anchorTime?: number,
 ): Promise<BlocksProducedSeries | null> {
-  let head;
-  try {
-    head = await publicClient.getBlock();
-  } catch {
-    return null; // can't anchor the window — caller renders a fallback
+  let headHeight: number;
+  let toTs: number;
+  if (anchorBlock !== undefined && anchorTime !== undefined) {
+    // Caller-supplied anchor: see `getBlocksProducedSeries`.
+    headHeight = anchorBlock;
+    toTs = anchorTime;
+  } else {
+    let head;
+    try {
+      head = await publicClient.getBlock();
+    } catch {
+      return null; // can't anchor the window — caller renders a fallback
+    }
+    headHeight = Number(head.number);
+    toTs = Number(head.timestamp) * 1000;
   }
-  const headHeight = Number(head.number);
-  const toTs = Number(head.timestamp) * 1000;
 
   const tasks = Array.from(
     { length: HOURS },
@@ -257,6 +267,16 @@ async function fetchBlocksProducedSeries(
  * heavier than the single-counter lookup, so it warrants a longer TTL than
  * `getBlocksValidated`. Wrapped in unstable_cache so the node route stays ISR
  * (the result is treated as cached data, not a per-request dynamic read).
+ *
+ * `anchorBlock` / `anchorTime` exist so a caller that already holds a chain head
+ * can cut this window from the *same* instant as another series it means to
+ * overlay. Without that, this crawl and the reward scan (`rewards.ts`) each read
+ * their own head, minutes apart, and their bucket edges land minutes apart too —
+ * enough to file a payout and the blocks that earned it under different hours.
+ * The arguments are part of the cache key, so a fresh anchor re-crawls; that
+ * costs nothing extra in practice, since both caches already turn over on the
+ * same 5-minute TTL. Omit them and the crawl anchors itself, which is the right
+ * behaviour when the other source is unavailable.
  */
 export const getBlocksProducedSeries = unstable_cache(
   fetchBlocksProducedSeries,

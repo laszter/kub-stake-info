@@ -3,6 +3,7 @@
 import { useState } from "react";
 import type { BlocksProducedSeries } from "@/lib/explorer";
 import type { RewardSeries } from "@/lib/rewards";
+import { alignHourly } from "@/lib/hourly";
 import { InfoHint } from "@/components/ui/InfoHint";
 import { HourlyChart, type ChartSeries } from "./HourlyChart";
 
@@ -39,7 +40,7 @@ const HINTS: Record<Tab, string> = {
   rewards:
     "KUB paid out to this node in each of the last 24 hours, summed from its DistributeRewards events. This is the whole payout before the split, so on a pool it includes the delegators' share as well as the owner's.",
   both:
-    "Blocks produced and KUB paid out, hour by hour. Each line has its own scale — the two differ by orders of magnitude — so read the shapes against each other, not the heights: hours where reward outruns production, or lags it, are the interesting ones.",
+    "Blocks produced and KUB paid out, hour by hour. The two come from different sources, read minutes apart, so their hours are matched up by timestamp before overlaying. Each line has its own scale — the two differ by orders of magnitude — so read the shapes against each other, not the heights: hours where reward outruns production, or lags it, are the interesting ones.",
 };
 
 const TITLES: Record<Tab, string> = {
@@ -100,6 +101,27 @@ export function NodeActivityChart({
   const blocksEmpty = blocks?.counts.every((v) => v === 0) ?? true;
   const rewardsEmpty = rewards?.values.every((v) => v === 0) ?? true;
 
+  /** The overlay's shared grid. Both series are 24 rolling hours, but each is
+      anchored to the chain head as of its own cache fill, so index i is not the
+      same hour in both — see `hourly.ts`. Aligning by timestamp is what keeps a
+      payout drawn over the blocks it was earned by; the price is that the
+      window shrinks to the hours both sources cover, hence the header counting
+      the buckets rather than saying "24h" whatever happens. */
+  const both =
+    blocks && rewards
+      ? alignHourly(
+          { values: blocks.counts, bucketStarts: blocks.bucketStarts },
+          rewards,
+        )
+      : null;
+
+  const windowHours =
+    (tab === "blocks"
+      ? blocks?.counts.length
+      : tab === "rewards"
+        ? rewards?.values.length
+        : both?.bucketStarts.length) ?? 24;
+
   function panel() {
     if (tab === "blocks") {
       if (!blocks) return <Note>{OUTAGE.blocks}</Note>;
@@ -133,6 +155,10 @@ export function NodeActivityChart({
     if (!blocks || !rewards) {
       return <Note>{!blocks ? OUTAGE.blocks : OUTAGE.rewards}</Note>;
     }
+    // Two windows that no longer overlap at all — one cache would have to be a
+    // day stale. Nothing honest to draw, so say that rather than overlay hours
+    // that are not the same hours.
+    if (!both) return <Note>{OUTAGE.unaligned}</Note>;
     // One flat line against a live one is still a real comparison, so only an
     // entirely silent node gets the note.
     if (blocksEmpty && rewardsEmpty) {
@@ -141,20 +167,19 @@ export function NodeActivityChart({
     return (
       <HourlyChart
         series={[
-          { ...BLOCKS, values: blocks.counts },
+          { ...BLOCKS, values: both.a },
           {
             ...REWARDS,
-            values: rewards.values,
+            values: both.b,
             color: "var(--color-chart-alt)",
             dashed: true,
           },
         ]}
-        // Both series are 24 buckets ending at "now" (`HOURS` in `explorer.ts`,
-        // `SERIES_HOURS` in `rewards.ts`), so they line up index by index. The
-        // axis labels come from the blocks series; the two are cached separately
-        // and can be anchored a few minutes apart, which is invisible against
-        // labels that only read to the hour.
-        bucketStarts={blocks.bucketStarts}
+        // The blocks series' grid, trimmed to the hours the rewards series also
+        // covers — `alignHourly` has already re-indexed the payouts onto it, so
+        // one x position is one hour in both lines. `to` stays the blocks
+        // anchor, which is what the "Nh ago" labels are measured from.
+        bucketStarts={both.bucketStarts}
         to={blocks.to}
         title={TITLES.both}
       />
@@ -166,7 +191,7 @@ export function NodeActivityChart({
       <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
         <h3 className="flex items-center text-sm font-medium text-ink-soft">
           {TITLES[tab]}
-          <span className="ml-1 text-ink-muted">· last 24h</span>
+          <span className="ml-1 text-ink-muted">· last {windowHours}h</span>
           {/* Keyed so the popover unmounts on tab change — otherwise an open
               hint would keep showing the previous view's explanation. */}
           <InfoHint key={tab} label={HINTS[tab]} />
@@ -211,6 +236,8 @@ export function NodeActivityChart({
 const OUTAGE = {
   blocks: "Couldn't load production history from KUB Scan — try again shortly.",
   rewards: "Couldn't read reward history from the chain — try again shortly.",
+  unaligned:
+    "Block and reward history currently cover different days — try again shortly.",
 };
 
 function Note({ children }: { children: React.ReactNode }) {

@@ -213,10 +213,18 @@ function BlocksValidatedSkeleton() {
     Neither `null` is handled here — the empty and unreadable cases are worded
     per series and belong next to the tab that shows them. */
 async function NodeActivityChartSection({ v }: { v: Validator }) {
-  const [blocks, rewards] = await Promise.all([
-    getBlocksProducedSeries(v.address),
-    getNetworkRewards(),
-  ]);
+  // Sequential on purpose: the reward scan carries the chain head its buckets
+  // were cut from, and handing that to the block crawl is what puts both series
+  // on one hourly grid (see `getBlocksProducedSeries`). The scan is the cached
+  // network-wide one this page already awaits elsewhere, so the wait is a cache
+  // read, not a second scan. A failed scan just leaves the crawl to anchor
+  // itself.
+  const rewards = await getNetworkRewards();
+  const blocks = await getBlocksProducedSeries(
+    v.address,
+    rewards?.headBlock,
+    rewards?.headTime,
+  );
   return (
     <NodeActivityChart
       blocks={blocks}

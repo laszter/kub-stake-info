@@ -225,7 +225,10 @@ export function HourlyChart({ series, bucketStarts, to, title }: HourlyChartProp
       at and the SSR and hydrated HTML stay identical. On a cached page that
       makes every age a lower bound, the same convention `formatAge` keeps. */
   const agoLabel = (i: number) => {
-    const h = Math.round((to - bucketStarts[i]) / 3_600_000);
+    // Floored, not rounded, so the label is a lower bound on the age the same
+    // way `formatAge` is: a bucket that opened 5h59m ago reads "5h ago" and the
+    // real age only ever runs past what was printed, never behind it.
+    const h = Math.floor((to - bucketStarts[i]) / 3_600_000);
     return h <= 0 ? "just now" : `${h}h ago`;
   };
 
