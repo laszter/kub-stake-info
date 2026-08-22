@@ -1,5 +1,13 @@
 import { unstable_cache } from "next/cache";
-import { createPublicClient, http, parseAbiItem } from "viem";
+import {
+  BaseError,
+  createPublicClient,
+  formatEther,
+  http,
+  parseAbiItem,
+  ResponseBodyTooLargeError,
+} from "viem";
+import type { GetLogsReturnType } from "viem";
 import { kubChain } from "./chain";
 import { STAKE_MANAGER_V2_ADDRESS } from "./contract";
 
@@ -24,7 +32,7 @@ import { STAKE_MANAGER_V2_ADDRESS } from "./contract";
  * concurrent JSON-RPC calls into one HTTP POST. That is right for the many tiny
  * `eth_call`s the rest of the app makes, but fatal for `eth_getLogs`: the
  * batched *responses* are concatenated into a single body, and a week of
- * network-wide payouts (~67k logs) blows past viem's 10 MiB body cap — verified,
+ * network-wide payouts (91k+ logs) blows past viem's 10 MiB body cap — verified,
  * it fails with `ResponseBodyTooLargeError`. With `batch: false` each chunk is
  * its own request and its own body, so only per-chunk size matters.
  */
@@ -49,16 +57,36 @@ const BLOCK_TIME_S = 3;
     edge by a handful of blocks, which cannot change a 7-day rate. */
 const WINDOW_BLOCKS = (WINDOW_DAYS * 24 * 3600) / BLOCK_TIME_S; // 201_600
 
-/** The window is split into this many `eth_getLogs` calls (~14.4k blocks ≈ 12h
-    each). Sized so the busiest chunk's response stays an order of magnitude
-    below viem's 10 MiB cap even if payout volume grows; fewer, fatter chunks
-    were measured to sit uncomfortably close to it. */
-const CHUNKS = 14;
+/** The window is split into this many `eth_getLogs` calls (7.2k blocks ≈ 6h
+    each). What constrains the number is the *busiest* chunk's response against
+    viem's 10 MiB cap, not the average one: payouts are bursty, so the worst
+    chunk runs far above the mean. Re-measured over one window (91,525 logs,
+    ~78 MiB in total): at 14 chunks the worst was 6.34 MiB — 63% of the cap,
+    only 1.6x of headroom, not the order of magnitude this comment used to
+    claim — while at 28 it is 3.45 MiB, 2.9x. The scan is bandwidth-bound, so
+    halving the span costs no wall-clock (4.5–4.8s vs 4.5–5.7s over five runs)
+    and buys that margin for free. Growth past even this is absorbed by
+    `fetchChunk`, which splits an over-cap range rather than losing it. */
+const CHUNKS = 28;
 
-/** Chunks in flight at once. Measured: 14 chunks at concurrency 5 pulled 66,871
-    logs in ~2.8s. Higher concurrency buys little and risks rate-limiting the
-    public RPC, which is shared with every other read in the app. */
+/** Chunks in flight at once. Measured: 28 chunks at concurrency 5 pulled 91,525
+    logs in ~4.7s. Higher concurrency buys little — the scan is bandwidth-bound,
+    not latency-bound — and risks rate-limiting the public RPC, which is shared
+    with every other read in the app. */
 const CHUNK_CONCURRENCY = 5;
+
+/** How many times `fetchChunk` may halve a range that came back over the body
+    cap. Four levels take a 7.2k-block chunk down to ~450 blocks, a 16x cut in
+    payload — well past any plausible growth in payout volume. Bounded so a
+    range that fails for some other reason can't fan out without limit. */
+const MAX_SPLIT_DEPTH = 4;
+
+/** Hourly buckets kept for the per-node payout chart. Only the tail of the
+    7-day window is bucketed: the chart shows a day, and keeping 168 buckets per
+    validator to render 24 would bloat the cache entry for nothing. The scan
+    already reads these logs for the rate, so the buckets cost no extra RPC —
+    only the arithmetic below. */
+const SERIES_HOURS = 24;
 
 /**
  * The event signature is written out rather than pulled from
@@ -93,6 +121,79 @@ async function pool<T>(tasks: (() => Promise<T>)[], limit: number): Promise<T[]>
   return results;
 }
 
+/** Logs of one `DistributeRewards` chunk. Spelled out because `fetchChunk` is
+    recursive, and TypeScript cannot infer the return type of a function that
+    refers to itself. */
+type RewardLogs = GetLogsReturnType<
+  typeof distributeRewardsEvent,
+  [typeof distributeRewardsEvent],
+  true
+>;
+
+/** True when `err` is — or wraps — viem's over-the-body-cap error.
+    The HTTP transport rethrows `ResponseBodyTooLargeError` unwrapped, but
+    nothing guarantees a layer above won't wrap it in a `cause` chain later, so
+    the walk covers both rather than betting on the current shape. */
+function isOverBodyCap(err: unknown): boolean {
+  if (err instanceof ResponseBodyTooLargeError) return true;
+  return (
+    err instanceof BaseError &&
+    Boolean(err.walk((e) => e instanceof ResponseBodyTooLargeError))
+  );
+}
+
+/**
+ * One chunk of the window, or null if it could not be read.
+ *
+ * Two failure modes, deliberately handled differently:
+ *
+ *  · A transient RPC error is retried once in place — the same request has a
+ *    real chance of succeeding.
+ *  · An over-the-body-cap response is *deterministic*: the identical request
+ *    produces the identical oversized body, so retrying it is guaranteed waste.
+ *    The range is halved and each half fetched instead. That is what keeps the
+ *    scan alive as payout volume grows: without it, a chunk crossing 10 MiB is
+ *    simply lost, and once more than half the chunks cross it `fetchNetworkRewards`
+ *    returns null and every reward rate on the site silently turns into an em
+ *    dash — an outage with no error anywhere to point at.
+ *
+ * A half that cannot be read makes the whole chunk incomplete, so it is reported
+ * lost rather than partially summed; understating a rate is worse than showing
+ * none, which is the same call the `failed` guard in the caller makes.
+ */
+async function fetchChunk(
+  start: number,
+  end: number,
+  depth = 0,
+): Promise<RewardLogs | null> {
+  for (let attempt = 0; attempt < 2; attempt++) {
+    try {
+      return await logClient.getLogs({
+        address: STAKE_MANAGER_V2_ADDRESS,
+        event: distributeRewardsEvent,
+        fromBlock: BigInt(start),
+        toBlock: BigInt(end),
+        // strict: only logs whose data decodes fully against the signature are
+        // returned, which is also what gives `log.args` non-optional fields —
+        // no per-field undefined checks over ~92k logs.
+        strict: true,
+      });
+    } catch (err) {
+      if (isOverBodyCap(err)) {
+        if (depth >= MAX_SPLIT_DEPTH || end <= start) return null;
+        const mid = start + Math.floor((end - start) / 2);
+        const [lower, upper] = await Promise.all([
+          fetchChunk(start, mid, depth + 1),
+          fetchChunk(mid + 1, end, depth + 1),
+        ]);
+        return lower && upper ? [...lower, ...upper] : null;
+      }
+      // transient RPC failure — retry once, then report the chunk as lost
+    }
+  }
+  return null;
+}
+
 /** Rewards paid to one validator ID inside the window.
     Every amount is wei as an unsigned decimal string, never a `bigint`:
     `unstable_cache` serialises with `JSON.stringify`, which throws
@@ -121,6 +222,12 @@ export type ValidatorRewards = {
   count: number;
   /** Height of the most recent payout; 0 when there was none. */
   lastBlock: number;
+  /** `totalReward` paid inside each of the last `SERIES_HOURS` hours, oldest
+      first (index 0 = 24h before the head, index 23 = the past hour). Wei as
+      decimal strings for the same `unstable_cache` reason as the fields above.
+      Always full length, so a caller can sum two IDs index-by-index without a
+      length check. */
+  hourly: string[];
 };
 
 /** One network-wide scan, shared by every page. Purely JSON-safe so it survives
@@ -130,6 +237,10 @@ export type NetworkRewards = {
   byId: Record<string, ValidatorRewards>;
   /** Chain head the scan was anchored to — the reference point for ages. */
   headBlock: number;
+  /** That head block's own timestamp, unix ms. The hourly buckets are cut by
+      block *height* (heights are what `eth_getLogs` ranges speak), so this is
+      what turns them back into wall-clock bucket starts for the chart axis. */
+  headTime: number;
   /** First block of the window (inclusive). */
   fromBlock: number;
   /** Window length in days, so callers annualise with the same divisor. */
@@ -154,30 +265,15 @@ async function fetchNetworkRewards(): Promise<NetworkRewards | null> {
     return null; // can't anchor the window — caller renders a fallback
   }
   const headBlock = Number(head.number);
+  const headTime = Number(head.timestamp) * 1000;
   const fromBlock = Math.max(0, headBlock - WINDOW_BLOCKS);
   const span = Math.floor((headBlock - fromBlock) / CHUNKS);
 
-  const tasks = Array.from({ length: CHUNKS }, (_, i) => async () => {
+  const tasks = Array.from({ length: CHUNKS }, (_, i) => () => {
     const start = fromBlock + i * span;
     // The last chunk runs to the head so integer division can't drop the tail.
     const end = i === CHUNKS - 1 ? headBlock : fromBlock + (i + 1) * span - 1;
-    for (let attempt = 0; attempt < 2; attempt++) {
-      try {
-        return await logClient.getLogs({
-          address: STAKE_MANAGER_V2_ADDRESS,
-          event: distributeRewardsEvent,
-          fromBlock: BigInt(start),
-          toBlock: BigInt(end),
-          // strict: only logs whose data decodes fully against the signature are
-          // returned, which is also what gives `log.args` non-optional fields —
-          // no per-field undefined checks over ~67k logs.
-          strict: true,
-        });
-      } catch {
-        // transient RPC failure — retry once, then report the chunk as lost
-      }
-    }
-    return null;
+    return fetchChunk(start, end);
   });
 
   const parts = await pool(tasks, CHUNK_CONCURRENCY);
@@ -188,7 +284,14 @@ async function fetchNetworkRewards(): Promise<NetworkRewards | null> {
   const failed = parts.filter((p) => p === null).length;
   if (failed > CHUNKS / 2) return null;
 
-  type Sum = { total: bigint; delegators: bigint; owner: bigint; count: number; lastBlock: number };
+  type Sum = {
+    total: bigint;
+    delegators: bigint;
+    owner: bigint;
+    count: number;
+    lastBlock: number;
+    hourly: bigint[];
+  };
   const agg = new Map<string, Sum>();
   for (const part of parts) {
     if (!part) continue;
@@ -197,7 +300,14 @@ async function fetchNetworkRewards(): Promise<NetworkRewards | null> {
       const key = a.validatorId.toString();
       let sum = agg.get(key);
       if (!sum) {
-        sum = { total: 0n, delegators: 0n, owner: 0n, count: 0, lastBlock: 0 };
+        sum = {
+          total: 0n,
+          delegators: 0n,
+          owner: 0n,
+          count: 0,
+          lastBlock: 0,
+          hourly: new Array<bigint>(SERIES_HOURS).fill(0n),
+        };
         agg.set(key, sum);
       }
       sum.total += a.totalReward;
@@ -207,6 +317,17 @@ async function fetchNetworkRewards(): Promise<NetworkRewards | null> {
       // Pending logs carry a null blockNumber; they have no height to age from.
       const height = log.blockNumber === null ? 0 : Number(log.blockNumber);
       if (height > sum.lastBlock) sum.lastBlock = height;
+      // Bucket by distance from the head in blocks, not by a timestamp: the log
+      // carries no time, and fetching every payout's block would be tens of
+      // thousands of extra reads. At KUB's fixed 3s a bucket edge can only drift
+      // by a few blocks, which moves a payout between adjacent hours at worst —
+      // the same tolerance `lastRewardAgeSec` already runs on.
+      if (height > 0) {
+        const hoursAgo = Math.floor(((headBlock - height) * BLOCK_TIME_S) / 3600);
+        if (hoursAgo >= 0 && hoursAgo < SERIES_HOURS) {
+          sum.hourly[SERIES_HOURS - 1 - hoursAgo] += a.totalReward;
+        }
+      }
     }
   }
 
@@ -218,10 +339,11 @@ async function fetchNetworkRewards(): Promise<NetworkRewards | null> {
       owner: sum.owner.toString(),
       count: sum.count,
       lastBlock: sum.lastBlock,
+      hourly: sum.hourly.map((wei) => wei.toString()),
     };
   }
 
-  return { byId, headBlock, fromBlock, windowDays: WINDOW_DAYS };
+  return { byId, headBlock, headTime, fromBlock, windowDays: WINDOW_DAYS };
 }
 
 /**
@@ -235,9 +357,67 @@ async function fetchNetworkRewards(): Promise<NetworkRewards | null> {
  */
 export const getNetworkRewards = unstable_cache(
   fetchNetworkRewards,
-  ["network-rewards"],
+  // The suffix is part of the key, not decoration: `hourly` and `headTime` were
+  // added to the cached shape, and an entry written before them would deserialise
+  // with those fields missing. Bumping the key retires those entries instead of
+  // letting `rewardSeriesFor` read `undefined` off one. Bump it again on the next
+  // shape change.
+  ["network-rewards", "v2-hourly"],
   { revalidate: 300 },
 );
+
+/** One node's payout per hour over the last 24h, ready to plot.
+    Same field names as `BlocksProducedSeries` in `explorer.ts` so both series
+    feed the one chart component without an adapter in between. */
+export type RewardSeries = {
+  /** KUB paid out in each hourly bucket, oldest first (index 0 = 24h ago).
+      Plain numbers, not wei: these are display values feeding an SVG, and a
+      per-hour payout is nowhere near the precision `Number` starts losing. */
+  values: number[];
+  /** Unix-ms start of each bucket, aligned 1:1 with `values`. */
+  bucketStarts: number[];
+  /** Anchor "now" — the timestamp of the head block the scan ran against. */
+  to: number;
+};
+
+const HOUR_MS = 3_600_000;
+
+/**
+ * Roll a network scan up into one address's hourly payout series.
+ *
+ * Sums across *every* ID the address holds, index by index, for the same reason
+ * `rewardRatesFor` does: several addresses on this chain hold more than one, and
+ * charting only the current ID would draw a node as quieter than it is.
+ *
+ * Returns null only when the chain could not be read. An address that was simply
+ * never paid comes back as 24 honest zeroes — the caller must keep telling those
+ * two apart, exactly as `hasData` forces it to for the rates.
+ */
+export function rewardSeriesFor(
+  ids: number[],
+  net: NetworkRewards | null,
+): RewardSeries | null {
+  if (!net) return null;
+
+  const wei = new Array<bigint>(SERIES_HOURS).fill(0n);
+  for (const id of ids) {
+    const r = net.byId[String(id)];
+    if (!r) continue; // this ID was simply never paid inside the window
+    for (let i = 0; i < SERIES_HOURS; i++) wei[i] += BigInt(r.hourly[i]);
+  }
+
+  return {
+    values: wei.map((w) => Number(formatEther(w))),
+    // Bucket i (oldest first) covers [to - (24-i)h, to - (23-i)h), matching how
+    // `explorer.ts` lays out `BlocksProducedSeries` so the two tabs of the chart
+    // share one x-axis.
+    bucketStarts: Array.from(
+      { length: SERIES_HOURS },
+      (_, i) => net.headTime - (SERIES_HOURS - i) * HOUR_MS,
+    ),
+    to: net.headTime,
+  };
+}
 
 /** Annualised, ready-to-display view of one node's realised rewards. */
 export type RewardRates = {

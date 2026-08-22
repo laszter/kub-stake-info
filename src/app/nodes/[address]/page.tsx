@@ -9,8 +9,8 @@ import {
   getDelegatorCount,
   getTopDelegators,
 } from "@/lib/explorer";
-import { getNetworkRewards, rewardRatesFor } from "@/lib/rewards";
-import { BlocksProducedChart } from "@/components/nodes/BlocksProducedChart";
+import { getNetworkRewards, rewardRatesFor, rewardSeriesFor } from "@/lib/rewards";
+import { NodeActivityChart } from "@/components/nodes/NodeActivityChart";
 import { TopDelegatorsTable } from "@/components/nodes/TopDelegatorsTable";
 import {
   formatKUBDisplay,
@@ -201,37 +201,42 @@ function BlocksValidatedSkeleton() {
   );
 }
 
-/** Hourly block-production line chart for the last 24h, crawled from KUB Scan in
-    its own async component so it streams in behind a Suspense boundary without
-    holding up the on-chain figures. Falls back to a quiet note when the explorer
-    can't be reached or the node produced nothing in the window. */
-async function BlocksProducedChartSection({ address }: { address: string }) {
-  const series = await getBlocksProducedSeries(address);
-  if (!series) {
-    return (
-      <p className="mt-3 text-sm text-ink-muted">
-        Couldn&apos;t load production history from KUB Scan — try again shortly.
-      </p>
-    );
-  }
-  const total = series.counts.reduce((a, b) => a + b, 0);
-  if (total === 0) {
-    return (
-      <p className="mt-3 text-sm text-ink-muted">
-        No blocks produced in the last 24 hours.
-      </p>
-    );
-  }
-  return <BlocksProducedChart {...series} />;
+/** Hourly activity chart for the last 24h — blocks produced and KUB paid out,
+    switchable in the client. Its own async component so it streams in behind a
+    Suspense boundary without holding up the on-chain figures.
+
+    Both series are resolved here rather than in the client, so switching tabs
+    needs no fetch. Only the block crawl is real work: the reward scan is
+    network-wide and cached as a single entry that `RewardsPerformanceStats` on
+    this very page already awaits, so the second series adds no round-trip.
+
+    Neither `null` is handled here — the empty and unreadable cases are worded
+    per series and belong next to the tab that shows them. */
+async function NodeActivityChartSection({ v }: { v: Validator }) {
+  const [blocks, rewards] = await Promise.all([
+    getBlocksProducedSeries(v.address),
+    getNetworkRewards(),
+  ]);
+  return (
+    <NodeActivityChart
+      blocks={blocks}
+      rewards={rewardSeriesFor(v.validatorIds, rewards)}
+    />
+  );
 }
 
-/** Pulsing placeholder sized to the chart while it streams in. */
-function BlocksProducedChartSkeleton() {
+/** Pulsing placeholder sized to the card while it streams in. Covers the header
+    row too: the heading and the tabs both live inside the client component now,
+    so without a stand-in the card would pop from empty to full height. */
+function NodeActivityChartSkeleton() {
   return (
-    <div
-      className="mt-3 h-44 w-full animate-pulse rounded-lg bg-line"
-      aria-hidden
-    />
+    <div className="animate-pulse" aria-hidden>
+      <div className="flex items-center justify-between gap-4">
+        <div className="h-5 w-52 rounded bg-line" />
+        <div className="h-8 w-28 rounded-lg bg-line" />
+      </div>
+      <div className="mt-3 h-44 w-full rounded-lg bg-line" />
+    </div>
   );
 }
 
@@ -787,13 +792,8 @@ export default async function NodeDetailPage({
             </Suspense>
           </StatGrid>
           <div className="rounded-card border border-line bg-card p-5 sm:p-6">
-            <h3 className="flex items-center text-sm font-medium text-ink-soft">
-              Blocks produced per hour
-              <span className="ml-1 text-ink-muted">· last 24h</span>
-              <InfoHint label="Blocks this node produced (signed) in each of the last 24 hours, per KUB Scan. Dips indicate missed slots or downtime." />
-            </h3>
-            <Suspense fallback={<BlocksProducedChartSkeleton />}>
-              <BlocksProducedChartSection address={v.address} />
+            <Suspense fallback={<NodeActivityChartSkeleton />}>
+              <NodeActivityChartSection v={v} />
             </Suspense>
           </div>
         </div>

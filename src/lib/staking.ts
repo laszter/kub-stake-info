@@ -55,7 +55,10 @@ export interface Validator {
    * 0xdc64…afb3 holds [20, 22]). On-chain events such as `DistributeRewards`
    * are keyed by validator ID, so anything aggregating them has to sum across
    * *all* of these; using only the current/latest ID silently undercounts.
-   * Empty when the index lookup failed.
+   *
+   * These are the positions the address occupies in `getAllValidator()` — that
+   * array *is* the ID mapping, see `getStakingData` — so a listed validator
+   * always has at least one, with no lookup left to fail.
    */
   validatorIds: number[];
 }
@@ -83,13 +86,18 @@ function metaFor(address: string) {
 /**
  * Fetch everything in as few RPC round-trips as possible:
  *  1. globals + the full validator address list
- *  2. one multicall for getValidatorInfo + getValidatorIndexLength of every
- *     unique address
- *  3. one multicall expanding those lengths into getValidatorIndexByIndex
+ *  2. one multicall for getValidatorInfo of every unique address
  *
- * Step 3 can't be folded into step 2 — the number of index lookups is only
- * known once the lengths come back. It stays a single batched multicall for
- * the whole network (~93 calls, ~160 ms) instead of a per-address loop.
+ * There is no third round because `getAllValidator()` already carries the ID
+ * mapping: the array is indexed by validator ID, so `getAllValidator()[i]` is
+ * the address of validator `i`, and an address's IDs are just the positions it
+ * occupies. That is verified against the chain, not assumed —
+ * `getValidatorByIndex(i)` matched `getAllValidator()[i]` for all 45 entries,
+ * and the positions matched `getValidatorIndexByIndex` for all 31 unique
+ * addresses. Reading the IDs through `getValidatorIndexLength` +
+ * `getValidatorIndexByIndex` instead cost a whole extra round-trip and 76 of
+ * 111 contract calls, for the same answer (measured: 111 calls / 3 rounds /
+ * ~243ms → 35 calls / 2 rounds / ~157ms).
  *
  * Wrapped in React.cache so stats + page + detail dedupe within a request.
  */
@@ -102,63 +110,35 @@ export const getStakingData = cache(async (): Promise<StakingData> => {
       publicClient.readContract({ ...stakeManager, functionName: "getAllValidator" }) as Promise<Address[]>,
     ]);
 
-  // getAllValidator() contains duplicate addresses (one validator can hold
-  // multiple IDs). Dedupe by lowercased address.
-  const seen = new Set<string>();
+  // getAllValidator() is indexed by validator ID and repeats an address once per
+  // ID it holds. One walk does both jobs: dedupe by lowercased address, and
+  // collect each address's IDs from the positions it occupies. Ascending by
+  // construction, so consumers get a stable order without a sort.
+  const addrIndexOf = new Map<string, number>();
   const uniqueAddresses: Address[] = [];
-  for (const addr of allRaw) {
+  const idsByAddress: number[][] = [];
+  allRaw.forEach((addr, id) => {
     const key = addr.toLowerCase();
-    if (!seen.has(key)) {
-      seen.add(key);
+    let i = addrIndexOf.get(key);
+    if (i === undefined) {
+      i = uniqueAddresses.length;
+      addrIndexOf.set(key, i);
       uniqueAddresses.push(addr);
+      idsByAddress.push([]);
     }
-  }
+    idsByAddress[i].push(id);
+  });
 
-  // Round 2: the validator struct and the ID count, interleaved per address so
-  // both come back in one batched round-trip.
-  const infoAndLengths = (await publicClient.multicall({
-    contracts: uniqueAddresses.flatMap((address) => [
-      { ...stakeManager, functionName: "getValidatorInfo", args: [address] },
-      { ...stakeManager, functionName: "getValidatorIndexLength", args: [address] },
-    ]),
+  // Round 2: the validator struct for every unique address, in one batched
+  // round-trip.
+  const infos = (await publicClient.multicall({
+    contracts: uniqueAddresses.map((address) => ({
+      ...stakeManager,
+      functionName: "getValidatorInfo",
+      args: [address],
+    })),
     allowFailure: true,
-  })) as { status: "success" | "failure"; result?: unknown }[];
-
-  const infos = uniqueAddresses.map(
-    (_, i) => infoAndLengths[i * 2] as { status: "success" | "failure"; result?: RawValidator },
-  );
-  const idCounts = uniqueAddresses.map((_, i) => {
-    const res = infoAndLengths[i * 2 + 1];
-    return res?.status === "success" ? Number(res.result as bigint) : 0;
-  });
-
-  // Round 3: flatten (address, index) pairs across the whole network into one
-  // multicall. getValidatorIndexByIndex only takes a single index, so the fan-out
-  // is unavoidable — batching it keeps the cost at one round-trip regardless.
-  const idLookups: { addrIndex: number; index: number }[] = [];
-  idCounts.forEach((count, addrIndex) => {
-    for (let index = 0; index < count; index++) idLookups.push({ addrIndex, index });
-  });
-
-  const idResults = idLookups.length
-    ? ((await publicClient.multicall({
-        contracts: idLookups.map(({ addrIndex, index }) => ({
-          ...stakeManager,
-          functionName: "getValidatorIndexByIndex",
-          args: [uniqueAddresses[addrIndex], BigInt(index)],
-        })),
-        allowFailure: true,
-      })) as { status: "success" | "failure"; result?: bigint }[])
-    : [];
-
-  const idsByAddress: number[][] = uniqueAddresses.map(() => []);
-  idLookups.forEach(({ addrIndex }, i) => {
-    const res = idResults[i];
-    if (res?.status !== "success" || res.result === undefined) return;
-    idsByAddress[addrIndex].push(Number(res.result));
-  });
-  // Ascending, so consumers get a stable order regardless of storage layout.
-  for (const ids of idsByAddress) ids.sort((a, b) => a - b);
+  })) as { status: "success" | "failure"; result?: RawValidator }[];
 
   const all: Validator[] = [];
   uniqueAddresses.forEach((address, i) => {

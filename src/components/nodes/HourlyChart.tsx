@@ -1,7 +1,31 @@
 "use client";
 
-import { useState } from "react";
-import type { BlocksProducedSeries } from "@/lib/explorer";
+import { useId, useState } from "react";
+
+/** The 24-bucket shape both series on this chart share. `BlocksProducedSeries`
+    (`explorer.ts`) and `RewardSeries` (`rewards.ts`) are each assignable to it,
+    which is why neither needs an adapter to be plotted. */
+export type HourlySeries = {
+  /** One value per bucket, oldest first (index 0 = 24h ago). */
+  values: number[];
+  /** Unix-ms start of each bucket, aligned 1:1 with `values`. */
+  bucketStarts: number[];
+  /** Anchor "now" — the timestamp the buckets were cut from. */
+  to: number;
+};
+
+export type HourlyChartProps = HourlySeries & {
+  /** Value → tooltip and footer text. Also applied to the average, so a series
+      of integers should round here rather than print "222.79 blocks/hr". */
+  format: (v: number) => string;
+  /** Value → y-axis tick. Usually terser than `format`; the axis has three
+      labels and no room for four decimals. */
+  formatTick: (v: number) => string;
+  /** Unit noun for tooltip and screen-reader text: "blocks" · "KUB". */
+  unit: string;
+  /** What is being plotted, for the group's accessible name. */
+  title: string;
+};
 
 /** Round a peak up to a tidy axis maximum (1/2/5 × 10ⁿ) so the top gridline
     reads as a round number instead of e.g. 153. */
@@ -63,32 +87,55 @@ const INNER_W = W - PAD.l - PAD.r;
 const INNER_H = H - PAD.t - PAD.b;
 
 /**
- * Blocks-produced-per-hour line chart for the last 24h. The smooth line and axes
- * are plain SVG themed through `var(--color-*)` tokens (so they flip with dark
- * mode); a tiny bit of client state drives a tooltip that reveals an hour's count
- * on mouse hover *or* keyboard focus — each hour is a focusable target, so Tab
- * walks through them and screen readers announce the value.
+ * Hourly line chart for the last 24h. The smooth line and axes are plain SVG
+ * themed through `var(--color-*)` tokens (so they flip with dark mode); a tiny
+ * bit of client state drives a tooltip that reveals an hour's value on mouse
+ * hover *or* keyboard focus — each hour is a focusable target, so Tab walks
+ * through them and screen readers announce the value.
+ *
+ * The series is passed in rather than fetched: the same component draws blocks
+ * produced and KUB paid out, which differ only in how a value is worded. Keeping
+ * that difference in two formatter props is what stops the second series from
+ * becoming a second copy of this file.
  */
-export function BlocksProducedChart({ counts, bucketStarts, to }: BlocksProducedSeries) {
+export function HourlyChart({
+  values,
+  bucketStarts,
+  to,
+  format,
+  formatTick,
+  unit,
+  title,
+}: HourlyChartProps) {
   const [active, setActive] = useState<number | null>(null);
+  // Scoped so the two tabs' gradients can never collide on one document —
+  // a hardcoded id would make whichever mounted second reuse the first's fill.
+  const fillId = useId();
 
-  const n = counts.length;
-  const total = counts.reduce((a, b) => a + b, 0);
-  const peak = Math.max(...counts, 0);
-  const avg = Math.round(total / n);
+  const n = values.length;
+  const total = values.reduce((a, b) => a + b, 0);
+  const peak = Math.max(...values, 0);
+  const avg = total / n;
   const yMax = niceMax(peak);
 
   const x = (i: number) => PAD.l + (n === 1 ? 0 : (i / (n - 1)) * INNER_W);
   const y = (v: number) => PAD.t + (1 - v / yMax) * INNER_H;
   const baseY = PAD.t + INNER_H;
 
-  const pts = counts.map((v, i) => ({ x: x(i), y: y(v) }));
+  const pts = values.map((v, i) => ({ x: x(i), y: y(v) }));
   const linePath = smoothPath(pts);
   const areaPath = `${linePath} L${x(n - 1).toFixed(2)},${baseY} L${x(0).toFixed(2)},${baseY} Z`;
 
-  // De-duplicate: a tiny yMax (e.g. 1) collapses 0/mid/max into repeats, which
-  // would otherwise draw overlapping gridlines with duplicate React keys.
-  const yTicks = [...new Set([0, Math.round(yMax / 2), yMax])];
+  // De-duplicate on the *rendered* label, not the raw value: a tiny yMax (e.g.
+  // 1) puts the midpoint at 0.5, which is a distinct number but formats to the
+  // same "1" as the max once an integer series rounds it. Deduping on the number
+  // would leave two gridlines wearing the same label; deduping here also keeps
+  // the React keys unique, which is what the raw-value Set was for.
+  const yTicks: { v: number; label: string }[] = [];
+  for (const v of [0, yMax / 2, yMax]) {
+    const label = formatTick(v);
+    if (!yTicks.some((t) => t.label === label)) yTicks.push({ v, label });
+  }
   const xTicks = [0, 6, 12, 18, n - 1];
   const step = n > 1 ? INNER_W / (n - 1) : INNER_W;
 
@@ -106,37 +153,39 @@ export function BlocksProducedChart({ counts, bucketStarts, to }: BlocksProduced
           viewBox={`0 0 ${W} ${H}`}
           className="h-auto w-full"
           role="group"
-          aria-label={`Blocks produced per hour over the last 24 hours: ${total.toLocaleString(
-            "en-US",
-          )} total, averaging ${avg} per hour, peaking at ${peak}.`}
+          aria-label={`${title} over the last 24 hours: ${format(
+            total,
+          )} ${unit} total, averaging ${format(avg)} per hour, peaking at ${format(
+            peak,
+          )}.`}
         >
           <defs>
-            <linearGradient id="bpc-fill" x1="0" y1="0" x2="0" y2="1">
+            <linearGradient id={fillId} x1="0" y1="0" x2="0" y2="1">
               <stop offset="0%" stopColor="var(--color-brand)" stopOpacity={0.2} />
               <stop offset="100%" stopColor="var(--color-brand)" stopOpacity={0} />
             </linearGradient>
           </defs>
 
           {/* horizontal gridlines + y labels */}
-          {yTicks.map((t) => (
-            <g key={t} aria-hidden>
+          {yTicks.map(({ v, label }) => (
+            <g key={label} aria-hidden>
               <line
                 x1={PAD.l}
                 x2={W - PAD.r}
-                y1={y(t)}
-                y2={y(t)}
+                y1={y(v)}
+                y2={y(v)}
                 stroke="var(--color-line)"
                 strokeWidth={1}
               />
               <text
                 x={PAD.l - 6}
-                y={y(t) + 3.5}
+                y={y(v) + 3.5}
                 textAnchor="end"
                 fontSize={11}
                 fill="var(--color-ink-muted)"
                 className="tabular-nums"
               >
-                {t}
+                {label}
               </text>
             </g>
           ))}
@@ -157,7 +206,7 @@ export function BlocksProducedChart({ counts, bucketStarts, to }: BlocksProduced
           ))}
 
           {/* series */}
-          <path d={areaPath} fill="url(#bpc-fill)" aria-hidden />
+          <path d={areaPath} fill={`url(#${fillId})`} aria-hidden />
           <path
             d={linePath}
             fill="none"
@@ -183,7 +232,7 @@ export function BlocksProducedChart({ counts, bucketStarts, to }: BlocksProduced
               />
               <circle
                 cx={x(active)}
-                cy={y(counts[active])}
+                cy={y(values[active])}
                 r={4}
                 fill="var(--color-brand)"
                 stroke="var(--color-card)"
@@ -193,14 +242,14 @@ export function BlocksProducedChart({ counts, bucketStarts, to }: BlocksProduced
           )}
 
           {/* resting dots (hidden under the marker for the active hour) */}
-          {counts.map((v, i) =>
+          {values.map((v, i) =>
             i === active ? null : (
               <circle key={i} cx={x(i)} cy={y(v)} r={2} fill="var(--color-brand)" aria-hidden />
             ),
           )}
 
           {/* focusable / hoverable per-hour hit areas drive the tooltip */}
-          {counts.map((_, i) => (
+          {values.map((_, i) => (
             <rect
               key={i}
               x={x(i) - step / 2}
@@ -210,8 +259,10 @@ export function BlocksProducedChart({ counts, bucketStarts, to }: BlocksProduced
               fill="transparent"
               tabIndex={0}
               role="img"
-              aria-label={`${counts[i].toLocaleString("en-US")} blocks, ${
-                i === n - 1 ? "in the past hour" : `${Math.round((to - bucketStarts[i]) / 3_600_000)} hours ago`
+              aria-label={`${format(values[i])} ${unit}, ${
+                i === n - 1
+                  ? "in the past hour"
+                  : `${Math.round((to - bucketStarts[i]) / 3_600_000)} hours ago`
               }`}
               className="cursor-crosshair outline-none"
               onMouseEnter={() => setActive(i)}
@@ -229,7 +280,7 @@ export function BlocksProducedChart({ counts, bucketStarts, to }: BlocksProduced
             className="pointer-events-none absolute z-10 whitespace-nowrap rounded-md border border-line bg-card px-2 py-1 text-xs shadow-sm"
             style={{
               left: `${(x(active) / W) * 100}%`,
-              top: `${(y(counts[active]) / H) * 100}%`,
+              top: `${(y(values[active]) / H) * 100}%`,
               transform: `translate(${
                 active === 0 ? "0" : active === n - 1 ? "-100%" : "-50%"
               }, calc(-100% - 8px))`,
@@ -237,7 +288,7 @@ export function BlocksProducedChart({ counts, bucketStarts, to }: BlocksProduced
             role="status"
           >
             <div className="font-semibold tabular-nums text-ink">
-              {counts[active].toLocaleString("en-US")} blocks
+              {format(values[active])} {unit}
             </div>
             <div className="text-ink-muted">{whenLabel(active)}</div>
           </div>
@@ -246,16 +297,13 @@ export function BlocksProducedChart({ counts, bucketStarts, to }: BlocksProduced
 
       <figcaption className="mt-3 flex flex-wrap gap-x-5 gap-y-1 text-xs text-ink-muted">
         <span>
-          Total{" "}
-          <b className="font-semibold tabular-nums text-ink">
-            {total.toLocaleString("en-US")}
-          </b>
+          Total <b className="font-semibold tabular-nums text-ink">{format(total)}</b>
         </span>
         <span>
-          Avg <b className="font-semibold tabular-nums text-ink">{avg}</b>/hr
+          Avg <b className="font-semibold tabular-nums text-ink">{format(avg)}</b>/hr
         </span>
         <span>
-          Peak <b className="font-semibold tabular-nums text-ink">{peak}</b>/hr
+          Peak <b className="font-semibold tabular-nums text-ink">{format(peak)}</b>/hr
         </span>
       </figcaption>
     </figure>
