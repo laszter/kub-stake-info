@@ -1,6 +1,6 @@
 "use client";
 
-import { useId, useState } from "react";
+import { useEffect, useId, useState } from "react";
 
 /** The 24-bucket shape every series on this chart shares. `BlocksProducedSeries`
     (`explorer.ts`) and `RewardSeries` (`rewards.ts`) are each assignable to it,
@@ -105,9 +105,11 @@ function smoothPath(pts: { x: number; y: number }[]): string {
 
 /* SVG canvas, in user units — scaled to the container width via `w-full`. */
 const W = 740;
-const H = 184;
+const H = 196;
 const PAD_T = 14;
-const PAD_B = 22;
+/** Deep enough for two lines of x labels: a bucket's start time, and how long
+    ago that was underneath it. */
+const PAD_B = 34;
 const PAD_L = 34;
 /** Right gutter. A second series puts its axis labels there and needs the room;
     with one series the plot runs almost to the edge, as it always has. */
@@ -119,6 +121,37 @@ const PAD_R_AXIS = 42;
     left labels read series 0's scale and the right labels series 1's, and each
     label still lands exactly on a line. */
 const GRID_FRACTIONS = [0, 0.5, 1];
+
+/**
+ * The reader's own time zone — but only after hydration. The server cannot know
+ * it, so the first render (and with it the SSR HTML) formats in UTC and the
+ * effect swaps in the browser's zone the moment it is safe to differ. Reading
+ * `Intl` during render instead would make the two HTMLs disagree. `undefined`
+ * is how `toLocale*` spells "whatever zone this machine is in".
+ */
+function useDisplayTimeZone(): string | undefined {
+  const [tz, setTz] = useState<string | undefined>("UTC");
+  useEffect(() => setTz(undefined), []);
+  return tz;
+}
+
+/** "14:37" — 24-hour clock, so a tick is never wider than five glyphs and the
+    hours sort visually the way they sort in time. */
+const timeAt = (ts: number, timeZone: string | undefined) =>
+  new Date(ts).toLocaleTimeString("en-GB", {
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+    timeZone,
+  });
+
+/** "22 Aug" — the day a bucket falls on. No year: the window is 24h wide. */
+const dateAt = (ts: number, timeZone: string | undefined) =>
+  new Date(ts).toLocaleDateString("en-GB", {
+    day: "numeric",
+    month: "short",
+    timeZone,
+  });
 
 /**
  * Hourly line chart for the last 24h — one series, or two overlaid on
@@ -137,6 +170,7 @@ const GRID_FRACTIONS = [0, 0.5, 1];
  */
 export function HourlyChart({ series, bucketStarts, to, title }: HourlyChartProps) {
   const [active, setActive] = useState<number | null>(null);
+  const tz = useDisplayTimeZone();
   // Scoped so several charts' gradients can never collide on one document —
   // a hardcoded id would make whichever mounted second reuse the first's fill.
   const gradId = useId();
@@ -185,12 +219,38 @@ export function HourlyChart({ series, bucketStarts, to, title }: HourlyChartProp
     return out;
   };
 
-  /** Short axis tick: "now" for the past hour, else hours-before-now. */
-  const agoLabel = (i: number) =>
-    i === n - 1 ? "now" : `${Math.round((to - bucketStarts[i]) / 3_600_000)}h`;
-  /** Phrase for tooltip / screen reader. */
+  /** "12h ago" — the age of a bucket's start. Measured against `to`, the
+      anchor the buckets were cut from, not the reader's clock: both numbers are
+      server-supplied, so nothing here depends on when the page is being looked
+      at and the SSR and hydrated HTML stay identical. On a cached page that
+      makes every age a lower bound, the same convention `formatAge` keeps. */
+  const agoLabel = (i: number) => {
+    const h = Math.round((to - bucketStarts[i]) / 3_600_000);
+    return h <= 0 ? "just now" : `${h}h ago`;
+  };
+
+  /** Tooltip / screen-reader phrase: "22 Aug, 14:37 · 12h ago". The date only
+      appears here — the axis has no room for it, and the age answers the same
+      question ("which side of midnight is this?") in less space. */
   const whenLabel = (i: number) =>
-    i === n - 1 ? "Past hour" : `${Math.round((to - bucketStarts[i]) / 3_600_000)}h ago`;
+    `${dateAt(bucketStarts[i], tz)}, ${timeAt(bucketStarts[i], tz)} · ${agoLabel(i)}`;
+
+  /** Which x positions carry a label. Each prints the bucket's start time over
+      its age, so the axis reads as wall clock and as elapsed time at once. */
+  const xTicks = (() => {
+    const idx = [0, 6, 12, 18, n - 1].filter(
+      (i, k, a) => i >= 0 && i < n && a.indexOf(i) === k,
+    );
+    return idx.map((i) => ({
+      i,
+      time: timeAt(bucketStarts[i], tz),
+      ago: agoLabel(i),
+      anchor: (i === 0 ? "start" : i === n - 1 ? "end" : "middle") as
+        | "start"
+        | "end"
+        | "middle",
+    }));
+  })();
 
   /** "631 blocks and 4.99 KUB" — one hour across every series. */
   const valuesAt = (i: number) =>
@@ -278,19 +338,30 @@ export function HourlyChart({ series, bucketStarts, to, title }: HourlyChartProp
             ),
           )}
 
-          {/* x labels */}
-          {[0, 6, 12, 18, n - 1].map((i) => (
-            <text
-              key={i}
-              x={x(i)}
-              y={H - 6}
-              textAnchor={i === 0 ? "start" : i === n - 1 ? "end" : "middle"}
-              fontSize={11}
-              fill="var(--color-ink-muted)"
-              aria-hidden
-            >
-              {agoLabel(i)}
-            </text>
+          {/* x labels: each bucket's start time over how long ago that was */}
+          {xTicks.map((t) => (
+            <g key={t.i} aria-hidden>
+              <text
+                x={x(t.i)}
+                y={H - 18}
+                textAnchor={t.anchor}
+                fontSize={11}
+                fill="var(--color-ink-muted)"
+                className="tabular-nums"
+              >
+                {t.time}
+              </text>
+              <text
+                x={x(t.i)}
+                y={H - 5}
+                textAnchor={t.anchor}
+                fontSize={10}
+                fill="var(--color-ink-muted)"
+                fillOpacity={0.75}
+              >
+                {t.ago}
+              </text>
+            </g>
           ))}
 
           {/* series: fill (single-series only), then line */}
@@ -358,11 +429,10 @@ export function HourlyChart({ series, bucketStarts, to, title }: HourlyChartProp
               fill="transparent"
               tabIndex={0}
               role="img"
-              aria-label={`${valuesAt(i)}, ${
-                i === n - 1
-                  ? "in the past hour"
-                  : `${Math.round((to - bucketStarts[i]) / 3_600_000)} hours ago`
-              }`}
+              aria-label={`${valuesAt(i)}, ${dateAt(
+                bucketStarts[i],
+                tz,
+              )} ${timeAt(bucketStarts[i], tz)}, ${agoLabel(i)}`}
               className="cursor-crosshair outline-none"
               onMouseEnter={() => setActive(i)}
               onFocus={() => setActive(i)}
