@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Roboto } from "next/font/google";
+import { Analytics } from "@vercel/analytics/next";
 import "./globals.css";
 import { ThemeProvider } from "@/providers/ThemeProvider";
 import { Web3Provider } from "@/providers/Web3Provider";
@@ -117,6 +118,7 @@ export default function RootLayout({
             <Footer />
           </Web3Provider>
         </ThemeProvider>
+        <Analytics />
       </body>
     </html>
   );
