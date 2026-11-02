@@ -2,16 +2,17 @@ import type { GlobalStats } from "@/lib/staking";
 import { formatKUB } from "@/lib/format";
 import { DataFreshness } from "@/components/ui/DataFreshness";
 
+/** One validator node (address) — not an operator, who may run several. */
 export interface DistributionSegment {
   label: string;
-  share: number; // 0–1 of total staked
+  share: number; // 0–1 of the stake held by active nodes
 }
 
 export interface StakeDistribution {
   top: DistributionSegment[];
-  topShare: number; // summed share of the listed top segments
-  othersShare: number; // remaining share held by everyone else
-  othersCount: number;
+  topShare: number; // summed share of the listed top nodes
+  othersShare: number; // remaining share held by every other active node
+  othersCount: number; // how many active nodes make up `othersShare`
 }
 
 /** Stepped brand tints for the distribution segments — one hue, varied weight,
@@ -52,16 +53,17 @@ function Figure({
 
 function DistributionBar({ dist }: { dist: StakeDistribution }) {
   const topPct = `${Math.round(dist.topShare * 100)}%`;
-  const label = `Stake distribution: the top ${dist.top.length} validators hold ${topPct} of all staked KUB`;
+  const label = `Stake distribution by node: the top ${dist.top.length} validator nodes hold ${topPct} of the KUB staked in active nodes`;
 
   return (
     <div>
-      <div className="flex items-center justify-between gap-3 text-xs">
-        <span className="font-medium uppercase tracking-wide text-ink-muted">
-          Stake distribution
+      <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 text-xs">
+        <span className="whitespace-nowrap font-medium uppercase tracking-wide text-ink-muted">
+          Stake distribution{" "}
+          <span className="normal-case tracking-normal">· by node</span>
         </span>
-        <span className="text-ink-muted">
-          Top {dist.top.length} hold{" "}
+        <span className="whitespace-nowrap text-ink-muted">
+          Top {dist.top.length} nodes hold{" "}
           <span className="font-semibold text-ink tabular-nums">{topPct}</span>
         </span>
       </div>
@@ -82,10 +84,14 @@ function DistributionBar({ dist }: { dist: StakeDistribution }) {
           <div
             className="min-w-[3px] rounded-r-full bg-brand/15"
             style={{ flexGrow: dist.othersShare }}
-            title={`${dist.othersCount} other validators · ${(dist.othersShare * 100).toFixed(2)}%`}
+            title={`${dist.othersCount} other nodes · ${(dist.othersShare * 100).toFixed(2)}%`}
           />
         )}
       </div>
+      <p className="mt-2 text-[11px] leading-snug text-ink-muted">
+        Each segment is one validator node, not an operator — one operator may
+        run several nodes. Shares are of the stake held by active nodes.
+      </p>
     </div>
   );
 }

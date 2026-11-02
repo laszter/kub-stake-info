@@ -48,20 +48,34 @@ export default async function HomePage() {
   );
   const asOf = new Date();
 
-  // Stake concentration: top validators by share, with the remainder folded
+  // Stake concentration: the top nodes by share, with the remainder folded
   // into "others" — surfaces how decentralised the network actually is.
+  //
+  // The unit is one validator node (address), not an operator: an operator
+  // running several addresses shows up as several segments. The denominator
+  // is the live set's own stake, not the contract's `totalStaked` (which also
+  // counts inactive validators), so the segments and "others" cover exactly
+  // the nodes counted and sum to 100%. `powerRatio` stays network-wide for
+  // the per-node "staking power" shown elsewhere.
   const TOP_N = 5;
-  const ranked = [...liveValidators].sort((a, b) => b.powerRatio - a.powerRatio);
-  const top = ranked.slice(0, TOP_N).map((v) => ({
-    label: v.name ?? shortenAddress(v.address),
-    share: v.powerRatio,
-  }));
-  const topShare = top.reduce((sum, t) => sum + t.share, 0);
+  const liveStake = liveValidators.reduce((sum, v) => sum + v.totalStake, 0n);
+  const shareOf = (stake: bigint) =>
+    liveStake === 0n
+      ? 0
+      : Number((stake * 1_000_000n) / liveStake) / 1_000_000;
+  const ranked = [...liveValidators].sort((a, b) =>
+    b.totalStake > a.totalStake ? 1 : b.totalStake < a.totalStake ? -1 : 0,
+  );
+  const topNodes = ranked.slice(0, TOP_N);
+  const topStake = topNodes.reduce((sum, v) => sum + v.totalStake, 0n);
   const distribution: StakeDistribution = {
-    top,
-    topShare,
-    othersShare: Math.max(0, 1 - topShare),
-    othersCount: Math.max(0, ranked.length - top.length),
+    top: topNodes.map((v) => ({
+      label: v.name ?? shortenAddress(v.address),
+      share: shareOf(v.totalStake),
+    })),
+    topShare: shareOf(topStake),
+    othersShare: shareOf(liveStake - topStake),
+    othersCount: ranked.length - topNodes.length,
   };
 
   return (
